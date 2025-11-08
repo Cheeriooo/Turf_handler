@@ -1,18 +1,17 @@
 
 import React from 'react';
 
-export const BatIcon: React.FC<{ className?: string }> = ({ className }) => (
+export const ShieldIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <path d="M14.28 21.37a2 2 0 0 1-2.56 0l-1.33-1a2 2 0 0 1 0-2.56l7.35-7.35a2 2 0 0 1 2.56 0l1 1a2 2 0 0 1 0 2.56z" />
-    <path d="M12 12 6.13 5.13a2 2 0 0 1 0-2.56l1.33-1a2 2 0 0 1 2.56 0L17 8" />
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
   </svg>
 );
 
-export const BallIcon: React.FC<{ className?: string }> = ({ className }) => (
+export const FistIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <circle cx="12" cy="12" r="10" />
-    <path d="M12 2a10 10 0 0 0-10 10" />
-    <path d="M22 12a10 10 0 0 0-10-10" />
+    <path d="M14.4 9.6 12 12V8a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" />
+    <path d="M14.4 9.6 16 14V8a2 2 0 1 0-4 0" />
+    <path d="M16 14h2a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-2" />
   </svg>
 );
 
