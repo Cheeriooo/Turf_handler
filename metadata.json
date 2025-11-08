@@ -1,0 +1,5 @@
+{
+  "name": "Cricket Umpire Scorer",
+  "description": "A comprehensive tool for cricket umpires to easily score matches. Record player names, overs, runs, extras, and wickets with a user-friendly interface designed for on-field use.",
+  "requestFramePermissions": []
+}
