@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import type { MatchState, MatchSetupData, Player, BatsmanStats, BowlerStats, OverBall } from './types';
 import MatchSetup from './components/MatchSetup';
 import { BatIcon, BallIcon, UndoIcon } from './components/icons';
@@ -13,7 +13,27 @@ type ScoringEvent =
   | { type: 'RESET' };
 
 const App: React.FC = () => {
-  const [matchState, setMatchState] = useState<MatchState | null>(null);
+  const [matchState, setMatchState] = useState<MatchState | null>(() => {
+    try {
+      const savedState = localStorage.getItem('cricketMatchState');
+      if (savedState) {
+        const parsedState = JSON.parse(savedState) as MatchState;
+        parsedState.lastEvent = null; // Don't persist undo state across reloads
+        return parsedState;
+      }
+    } catch (error) {
+      console.error("Could not load match state from local storage", error);
+    }
+    return null;
+  });
+  
+  useEffect(() => {
+    if (matchState) {
+      localStorage.setItem('cricketMatchState', JSON.stringify(matchState));
+    } else {
+      localStorage.removeItem('cricketMatchState');
+    }
+  }, [matchState]);
 
   const getPlayerById = useCallback((id: string | null): Player | undefined => {
       if (!id || !matchState) return undefined;
@@ -44,9 +64,9 @@ const App: React.FC = () => {
       isMatchStarted: true,
       battingTeam: 'team1',
       bowlingTeam: 'team2',
-      strikerId: team1Players[0].id,
-      nonStrikerId: team1Players[1].id,
-      bowlerId: team2Players[0].id,
+      strikerId: team1Players[0]?.id || null,
+      nonStrikerId: team1Players[1]?.id || null,
+      bowlerId: team2Players[0]?.id || null,
       batsmenStats: initialBatsmenStats,
       bowlersStats: initialBowlersStats,
       score: 0,
@@ -59,6 +79,45 @@ const App: React.FC = () => {
       isMatchOver: false,
       matchOverMessage: '',
       nextBatsmanIndex: 2,
+      currentInnings: 1,
+      firstInnings: null,
+    });
+  };
+  
+  const startSecondInnings = () => {
+    if (!matchState) return;
+
+    setMatchState(prevState => {
+      if (!prevState) return null;
+      
+      const newBattingTeamKey = prevState.bowlingTeam;
+      const newBowlingTeamKey = prevState.battingTeam;
+      const newBattingTeamPlayers = prevState[newBattingTeamKey].players;
+      const newBowlingTeamPlayers = prevState[newBowlingTeamKey].players;
+
+      return {
+        ...prevState,
+        firstInnings: {
+          score: prevState.score,
+          wickets: prevState.wickets,
+        },
+        battingTeam: newBattingTeamKey,
+        bowlingTeam: newBowlingTeamKey,
+        strikerId: newBattingTeamPlayers.length > 0 ? newBattingTeamPlayers[0].id : null,
+        nonStrikerId: newBattingTeamPlayers.length > 1 ? newBattingTeamPlayers[1].id : null,
+        bowlerId: newBowlingTeamPlayers.length > 0 ? newBowlingTeamPlayers[0].id : null,
+        score: 0,
+        wickets: 0,
+        currentOver: 0,
+        currentBall: 0,
+        currentOverHistory: [],
+        allOversHistory: [],
+        isMatchOver: false,
+        matchOverMessage: '',
+        nextBatsmanIndex: 2,
+        currentInnings: 2,
+        lastEvent: null, // Clear undo state
+      };
     });
   };
 
@@ -69,31 +128,31 @@ const App: React.FC = () => {
 
     setMatchState(prevState => {
       if (!prevState) return null;
-
       let newState = saveStateForUndo(prevState);
       newState.bowlerId = newBowlerId;
-      
       return newState;
     });
   };
 
   const handleScore = (event: ScoringEvent) => {
-    if (!matchState || matchState.isMatchOver) return;
+    if (event.type === 'RESET') {
+        setMatchState(null);
+        return;
+    }
+    if (!matchState || (matchState.isMatchOver && event.type !== 'UNDO')) return;
 
     const saveStateForUndo = (state: MatchState) => ({...state, lastEvent: JSON.parse(JSON.stringify(state)) });
 
     setMatchState(prevState => {
       if (!prevState) return null;
 
-      let newState = saveStateForUndo(prevState);
-      const { strikerId, nonStrikerId, bowlerId, battingTeam, nextBatsmanIndex } = newState;
-      
-      if(event.type === 'RESET') {
-        return null;
-      }
       if(event.type === 'UNDO') {
         return prevState.lastEvent;
       }
+
+      let newState = saveStateForUndo(prevState);
+      const { strikerId, nonStrikerId, bowlerId, battingTeam, nextBatsmanIndex } = newState;
+      const maxWickets = newState[battingTeam].players.length - 1;
 
       if (!strikerId || !nonStrikerId || !bowlerId) return prevState;
 
@@ -124,18 +183,12 @@ const App: React.FC = () => {
           newState.batsmenStats[strikerId].isOut = true;
           newState.bowlersStats[bowlerId].wickets++;
           
-          if(newState.wickets < 10){
+          if(newState.wickets < maxWickets){
             const battingPlayers = newState[battingTeam].players;
             if(nextBatsmanIndex < battingPlayers.length){
               newState.strikerId = battingPlayers[nextBatsmanIndex].id;
               newState.nextBatsmanIndex++;
-            } else {
-               newState.isMatchOver = true;
-               newState.matchOverMessage = "All out!";
             }
-          } else {
-             newState.isMatchOver = true;
-             newState.matchOverMessage = "All out!";
           }
           break;
         case 'WARNING':
@@ -143,7 +196,6 @@ const App: React.FC = () => {
            return newState; // No state change that affects score
       }
 
-      // Update scores
       newState.score += runsInThisBall;
       newState.batsmenStats[strikerId].runs += runsInThisBall;
       newState.bowlersStats[bowlerId].runsConceded += runsInThisBall;
@@ -156,19 +208,17 @@ const App: React.FC = () => {
       
       newState.currentOverHistory.push(ball);
 
-      // End of over logic
       if(newState.currentBall === 6){
-        if(rotateStrike) rotateStrike = false; else rotateStrike = true; // Rotate strike at end of over
+        if (rotateStrike) rotateStrike = false; else rotateStrike = true;
         
-        const runsInOver = newState.currentOverHistory.reduce((acc, b) => acc + b.runs, 0);
-        if(runsInOver === 0) newState.bowlersStats[bowlerId].maidens++;
+        const isMaiden = newState.currentOverHistory.every(b => b.runs === 0 && !b.isExtra);
+        if (isMaiden) newState.bowlersStats[bowlerId].maidens++;
 
         newState.allOversHistory.push(newState.currentOverHistory);
         newState.currentOver++;
         newState.currentBall = 0;
         newState.currentOverHistory = [];
 
-        // Simple next bowler logic for now
         const bowlingTeamPlayers = newState[newState.bowlingTeam].players;
         const currentBowlerIndex = bowlingTeamPlayers.findIndex(p => p.id === bowlerId);
         const nextBowlerIndex = (currentBowlerIndex + 1) % bowlingTeamPlayers.length;
@@ -179,7 +229,6 @@ const App: React.FC = () => {
         [newState.strikerId, newState.nonStrikerId] = [newState.nonStrikerId, newState.strikerId];
       }
       
-      // Update advanced stats
       Object.values(newState.batsmenStats).forEach(s => {
         if(s.balls > 0) s.strikeRate = parseFloat(((s.runs / s.balls) * 100).toFixed(2));
       });
@@ -188,11 +237,38 @@ const App: React.FC = () => {
         s.overs = oversFloat;
         if(s.ballsDelivered > 0) s.economy = parseFloat((s.runsConceded / (s.ballsDelivered / 6)).toFixed(2));
       });
+
+      let matchIsOver = false;
+      let matchOverMsg = '';
+
+      if (newState.currentInnings === 1) {
+        if (newState.wickets >= maxWickets || newState.currentOver === newState.overs) {
+          matchIsOver = true;
+          const target = newState.score + 1;
+          const opponentTeamName = newState.bowlingTeam === 'team1' ? newState.team1.name : newState.team2.name;
+          matchOverMsg = `Innings 1 Over. ${opponentTeamName} needs ${target} to win.`;
+        }
+      } else { // Innings 2
+        if (newState.firstInnings && newState.score > newState.firstInnings.score) {
+          matchIsOver = true;
+          const battingTeamName = newState.battingTeam === 'team1' ? newState.team1.name : newState.team2.name;
+          const wicketsRemaining = maxWickets - newState.wickets;
+          matchOverMsg = `${battingTeamName} won by ${wicketsRemaining} wickets!`;
+        } else if (newState.wickets >= maxWickets || newState.currentOver === newState.overs) {
+          matchIsOver = true;
+          if (newState.firstInnings && newState.score === newState.firstInnings.score) {
+            matchOverMsg = 'Match Tied!';
+          } else {
+            const bowlingTeamName = newState.bowlingTeam === 'team1' ? newState.team1.name : newState.team2.name;
+            const runsDiff = newState.firstInnings!.score - newState.score;
+            matchOverMsg = `${bowlingTeamName} won by ${runsDiff} runs!`;
+          }
+        }
+      }
       
-      // Check for match end by overs
-      if(newState.currentOver === newState.overs){
+      if (matchIsOver) {
         newState.isMatchOver = true;
-        newState.matchOverMessage = "Innings over!";
+        newState.matchOverMessage = matchOverMsg;
       }
 
       return newState;
@@ -211,20 +287,31 @@ const App: React.FC = () => {
   const bowlerStats = matchState.bowlerId ? matchState.bowlersStats[matchState.bowlerId] : null;
   const bowlingTeamPlayers = matchState[matchState.bowlingTeam].players;
 
+  const handleModalAction = () => {
+    if (matchState.currentInnings === 1) {
+      startSecondInnings();
+    } else {
+      handleScore({ type: 'RESET' });
+    }
+  };
+  const modalButtonText = matchState.currentInnings === 1 ? 'Start 2nd Innings' : 'New Match';
+
   return (
     <div className="min-h-screen bg-gray-200 dark:bg-gray-900 text-gray-800 dark:text-gray-100 font-sans p-2 sm:p-4">
       <div className="max-w-7xl mx-auto space-y-4">
-        {/* Header and Scoreboard */}
         <header className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md">
             <div className="flex justify-between items-center">
                 <h1 className="text-2xl sm:text-3xl font-bold text-cricket-green">{matchState.team1.name} vs {matchState.team2.name}</h1>
                 <div className="flex items-center gap-2">
-                    <button onClick={() => handleScore({type: 'UNDO'})} className="p-2 bg-amber-500 hover:bg-amber-600 text-white rounded-full disabled:opacity-50" disabled={!matchState.lastEvent}><UndoIcon className="w-5 h-5"/></button>
+                    <button onClick={() => handleScore({type: 'UNDO'})} className="p-2 bg-amber-500 hover:bg-amber-600 text-white rounded-full disabled:opacity-50" disabled={!matchState.lastEvent} aria-label="Undo last event"><UndoIcon className="w-5 h-5"/></button>
                     <button onClick={() => handleScore({type: 'RESET'})} className="p-2 bg-red-600 hover:bg-red-700 text-white rounded-md text-sm">Reset</button>
                 </div>
             </div>
             <div className="mt-4 text-center">
                 <p className="text-lg"><span className="font-semibold">{matchState.battingTeam === 'team1' ? matchState.team1.name : matchState.team2.name}</span> are batting</p>
+                {matchState.currentInnings === 2 && matchState.firstInnings && (
+                  <p className="text-md text-gray-500">Target: <span className="font-bold text-cricket-green">{matchState.firstInnings.score + 1}</span></p>
+                )}
                 <p className="text-5xl font-extrabold my-2 tracking-tighter">
                     {matchState.score} - {matchState.wickets}
                 </p>
@@ -234,7 +321,6 @@ const App: React.FC = () => {
             </div>
         </header>
 
-        {/* Player Status */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md flex items-center justify-between">
                 <div>
@@ -281,7 +367,6 @@ const App: React.FC = () => {
             </div>
         </div>
         
-        {/* Over Summary */}
         <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md">
             <h3 className="font-semibold mb-2">This Over:</h3>
             <div className="flex items-center gap-2 flex-wrap">
@@ -299,30 +384,28 @@ const App: React.FC = () => {
             </div>
         </div>
 
-        {/* Scoring Controls */}
         <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md">
             <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
-                {/* Runs */}
                 {[0, 1, 2, 3, 4, 6].map(runs => (
                     <button key={runs} onClick={() => handleScore({type: 'RUNS', runs})} className={`p-4 rounded-lg font-bold text-lg transition-transform transform hover:scale-105 ${runs === 4 ? 'bg-green-500 text-white col-span-2' : ''} ${runs === 6 ? 'bg-purple-500 text-white col-span-2' : ''} ${runs < 4 ? 'bg-gray-200 dark:bg-gray-700' : ''}`}>
                         {runs} {runs === 4 || runs === 6 ? '!' : ''}
                     </button>
                 ))}
-                {/* Extras */}
                 <button onClick={() => handleScore({type: 'EXTRA', extraType: 'Wd'})} className="p-4 rounded-lg font-bold text-lg bg-blue-500 text-white">Wd</button>
                 <button onClick={() => handleScore({type: 'EXTRA', extraType: 'Nb'})} className="p-4 rounded-lg font-bold text-lg bg-blue-500 text-white">Nb</button>
-                {/* Wicket & Others */}
                 <button onClick={() => handleScore({type: 'WICKET'})} className="p-4 rounded-lg font-bold text-lg bg-red-500 text-white col-span-2">Wicket</button>
                 <button onClick={() => handleScore({type: 'WARNING', warningType: 'FirstBounce'})} className="p-4 rounded-lg font-bold text-lg bg-yellow-500 text-white col-span-2">Bounce</button>
             </div>
         </div>
         
         {matchState.isMatchOver && (
-            <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
-                <div className="bg-white dark:bg-gray-800 p-8 rounded-lg text-center">
-                    <h2 className="text-4xl font-bold mb-4">Match Over</h2>
-                    <p className="text-xl mb-6">{matchState.matchOverMessage}</p>
-                    <button onClick={() => handleScore({type: 'RESET'})} className="px-6 py-3 bg-cricket-green text-white font-bold rounded-lg">New Match</button>
+            <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50" role="dialog" aria-modal="true">
+                <div className="bg-white dark:bg-gray-800 p-8 rounded-lg text-center shadow-2xl max-w-sm mx-auto">
+                    <h2 className="text-3xl font-bold mb-4">{matchState.currentInnings === 1 && matchState.firstInnings === null ? 'Innings Over' : 'Match Over'}</h2>
+                    <p className="text-lg mb-6">{matchState.matchOverMessage}</p>
+                    <button onClick={handleModalAction} className="px-6 py-3 bg-cricket-green text-white font-bold rounded-lg hover:bg-green-700 transition-colors">
+                        {modalButtonText}
+                    </button>
                 </div>
             </div>
         )}

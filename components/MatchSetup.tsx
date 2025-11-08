@@ -10,32 +10,49 @@ interface MatchSetupProps {
 const MatchSetup: React.FC<MatchSetupProps> = ({ onMatchStart }) => {
   const [team1Name, setTeam1Name] = useState('Team A');
   const [team2Name, setTeam2Name] = useState('Team B');
-  const [team1Players, setTeam1Players] = useState(Array(11).fill('').map((_, i) => `A Player ${i + 1}`));
-  const [team2Players, setTeam2Players] = useState(Array(11).fill('').map((_, i) => `B Player ${i + 1}`));
+  const [team1Players, setTeam1Players] = useState<string[]>(['A Player 1', 'A Player 2']);
+  const [team2Players, setTeam2Players] = useState<string[]>(['B Player 1', 'B Player 2']);
   const [overs, setOvers] = useState(20);
 
   const handlePlayerChange = (team: 'team1' | 'team2', index: number, value: string) => {
+    const players = team === 'team1' ? [...team1Players] : [...team2Players];
+    players[index] = value;
     if (team === 'team1') {
-      const newPlayers = [...team1Players];
-      newPlayers[index] = value;
-      setTeam1Players(newPlayers);
+      setTeam1Players(players);
     } else {
-      const newPlayers = [...team2Players];
-      newPlayers[index] = value;
-      setTeam2Players(newPlayers);
+      setTeam2Players(players);
     }
   };
+  
+  const addPlayer = (team: 'team1' | 'team2') => {
+    if (team === 'team1') {
+      if (team1Players.length < 11) setTeam1Players([...team1Players, `A Player ${team1Players.length + 1}`]);
+    } else {
+      if (team2Players.length < 11) setTeam2Players([...team2Players, `B Player ${team2Players.length + 1}`]);
+    }
+  };
+
+  const removePlayer = (team: 'team1' | 'team2', index: number) => {
+    if (team === 'team1') {
+      if (team1Players.length > 2) setTeam1Players(team1Players.filter((_, i) => i !== index));
+    } else {
+      if (team2Players.length > 2) setTeam2Players(team2Players.filter((_, i) => i !== index));
+    }
+  };
+
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onMatchStart({
       team1Name,
       team2Name,
-      team1Players,
-      team2Players,
+      team1Players: team1Players.map(p => p.trim()).filter(p => p),
+      team2Players: team2Players.map(p => p.trim()).filter(p => p),
       overs,
     });
   };
+
+  const isFormValid = team1Players.filter(p=>p.trim()).length >= 2 && team2Players.filter(p=>p.trim()).length >= 2;
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 p-4 sm:p-6 lg:p-8">
@@ -60,17 +77,24 @@ const MatchSetup: React.FC<MatchSetupProps> = ({ onMatchStart }) => {
               />
               <div className="space-y-2 max-h-80 overflow-y-auto pr-2">
                 {team1Players.map((player, index) => (
-                  <input
-                    key={index}
-                    type="text"
-                    value={player}
-                    onChange={(e) => handlePlayerChange('team1', index, e.target.value)}
-                    placeholder={`Player ${index + 1}`}
-                    className="w-full p-2 border rounded bg-gray-50 dark:bg-gray-800 dark:border-gray-600 focus:ring-2 focus:ring-cricket-green outline-none"
-                    required
-                  />
+                  <div key={index} className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={player}
+                      onChange={(e) => handlePlayerChange('team1', index, e.target.value)}
+                      placeholder={`Player ${index + 1}`}
+                      className="w-full p-2 border rounded bg-gray-50 dark:bg-gray-800 dark:border-gray-600 focus:ring-2 focus:ring-cricket-green outline-none"
+                      required
+                    />
+                    <button type="button" onClick={() => removePlayer('team1', index)} className="p-2 text-red-500 hover:text-red-700 disabled:opacity-50" disabled={team1Players.length <= 2}>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                  </div>
                 ))}
               </div>
+              <button type="button" onClick={() => addPlayer('team1')} className="w-full p-2 text-cricket-green border-2 border-dashed border-cricket-green rounded-lg hover:bg-green-50 dark:hover:bg-gray-800 transition" disabled={team1Players.length >= 11}>
+                Add Player ({team1Players.length}/11)
+              </button>
             </div>
 
             {/* Team 2 */}
@@ -86,17 +110,24 @@ const MatchSetup: React.FC<MatchSetupProps> = ({ onMatchStart }) => {
               />
               <div className="space-y-2 max-h-80 overflow-y-auto pr-2">
                 {team2Players.map((player, index) => (
-                  <input
-                    key={index}
-                    type="text"
-                    value={player}
-                    onChange={(e) => handlePlayerChange('team2', index, e.target.value)}
-                    placeholder={`Player ${index + 1}`}
-                    className="w-full p-2 border rounded bg-gray-50 dark:bg-gray-800 dark:border-gray-600 focus:ring-2 focus:ring-cricket-green outline-none"
-                    required
-                  />
+                   <div key={index} className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={player}
+                      onChange={(e) => handlePlayerChange('team2', index, e.target.value)}
+                      placeholder={`Player ${index + 1}`}
+                      className="w-full p-2 border rounded bg-gray-50 dark:bg-gray-800 dark:border-gray-600 focus:ring-2 focus:ring-cricket-green outline-none"
+                      required
+                    />
+                    <button type="button" onClick={() => removePlayer('team2', index)} className="p-2 text-red-500 hover:text-red-700 disabled:opacity-50" disabled={team2Players.length <= 2}>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                  </div>
                 ))}
               </div>
+              <button type="button" onClick={() => addPlayer('team2')} className="w-full p-2 text-cricket-green border-2 border-dashed border-cricket-green rounded-lg hover:bg-green-50 dark:hover:bg-gray-800 transition" disabled={team2Players.length >= 11}>
+                Add Player ({team2Players.length}/11)
+              </button>
             </div>
           </div>
 
@@ -114,10 +145,12 @@ const MatchSetup: React.FC<MatchSetupProps> = ({ onMatchStart }) => {
 
           <button
             type="submit"
-            className="w-full py-4 text-xl font-bold text-white bg-cricket-green rounded-lg hover:bg-green-700 transition-colors duration-300 focus:outline-none focus:ring-4 focus:ring-green-300"
+            disabled={!isFormValid}
+            className="w-full py-4 text-xl font-bold text-white bg-cricket-green rounded-lg hover:bg-green-700 transition-colors duration-300 focus:outline-none focus:ring-4 focus:ring-green-300 disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
             Start Match
           </button>
+          {!isFormValid && <p className="text-center text-red-500 text-sm mt-2">Each team must have at least 2 players with valid names.</p>}
         </form>
       </div>
     </div>

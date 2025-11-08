@@ -62,6 +62,13 @@ export interface MatchState {
   matchOverMessage: string;
   
   nextBatsmanIndex: number; // to track who is next to bat for simplicity
+
+  // New fields for multiple innings
+  currentInnings: 1 | 2;
+  firstInnings: {
+    score: number;
+    wickets: number;
+  } | null;
 }
 
 export interface MatchSetupData {
