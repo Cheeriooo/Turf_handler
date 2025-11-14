@@ -85,7 +85,12 @@ const App: React.FC = () => {
   };
 
   const handleResetMatch = () => {
-    if (window.confirm('Are you sure you want to reset the entire match?')) {
+    const confirmMessage = matchState?.isMatchOver
+      ? 'Do you want to start a new match? The current match data will be cleared.'
+      : 'Are you sure you want to reset the entire match? This action cannot be undone.';
+
+    if (window.confirm(confirmMessage)) {
+      localStorage.removeItem('cricketResolverState');
       setMatchState(null);
     }
   };
@@ -418,9 +423,17 @@ const App: React.FC = () => {
           )}
           
           {isMatchOver && (
-            <div className="text-center py-4 bg-green-900/50 rounded-lg">
-              <h2 className="text-2xl font-bold text-green-300">Match Over</h2>
-              <p className="text-lg mt-1">{matchOverMessage}</p>
+            <div className="text-center space-y-4">
+              <div className="bg-green-900/50 rounded-lg p-4">
+                <h2 className="text-2xl font-bold text-green-300">Match Over</h2>
+                <p className="text-lg mt-1">{matchOverMessage}</p>
+              </div>
+              <button
+                onClick={handleResetMatch}
+                className="w-full max-w-sm mx-auto py-3 text-lg font-bold text-white bg-gradient-to-r from-[#3B82F6] to-[#1E40AF] rounded-xl hover:scale-102 transition-transform"
+              >
+                Start New Match
+              </button>
             </div>
           )}
 
