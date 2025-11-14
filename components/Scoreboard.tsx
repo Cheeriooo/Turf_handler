@@ -5,11 +5,11 @@ interface ScoreboardProps {
   wickets: number;
   currentOver: number;
   currentBall: number;
-
   totalOvers: number;
   battingTeamName: string;
   firstInningsResult: { score: number; wickets: number } | null;
   currentInnings: 1 | 2;
+  animationKey: number;
 }
 
 const Scoreboard: React.FC<ScoreboardProps> = ({
@@ -21,6 +21,7 @@ const Scoreboard: React.FC<ScoreboardProps> = ({
   battingTeamName,
   firstInningsResult,
   currentInnings,
+  animationKey,
 }) => {
   const totalBallsBowled = currentOver * 6 + currentBall;
   
@@ -40,20 +41,20 @@ const Scoreboard: React.FC<ScoreboardProps> = ({
   }
 
   const renderStat = (label: string, value: string | number) => (
-    <div className="bg-black/20 p-2 rounded-lg text-center">
-      <p className="text-xs text-[#9CA3AF] uppercase tracking-wider">{label}</p>
+    <div className="bg-black/10 dark:bg-black/20 p-2 rounded-lg text-center">
+      <p className="text-xs text-gray-500 dark:text-[#9CA3AF] uppercase tracking-wider">{label}</p>
       <p className="text-xl font-bold font-mono">{value}</p>
     </div>
   );
 
   return (
-    <div className="bg-gradient-to-b from-[#161B22] to-[#0D1117] border border-gray-700 text-white rounded-xl p-4 shadow-lg flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
+    <div className="bg-white dark:bg-gradient-to-b dark:from-[#161B22] dark:to-[#0D1117] border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-white rounded-xl p-4 shadow-lg flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
       <div className="text-center sm:text-left">
-        <p className="text-lg font-semibold text-[#9CA3AF]">{battingTeamName}</p>
-        <h2 className="text-5xl font-bold tracking-tight">
-          {score}<span className="text-4xl text-gray-400">/{wickets}</span>
+        <p className="text-lg font-semibold text-gray-500 dark:text-[#9CA3AF]">{battingTeamName}</p>
+        <h2 key={animationKey} className="text-5xl font-bold tracking-tight animate-score-flash">
+          {score}<span className="text-4xl text-gray-400 dark:text-gray-400">/{wickets}</span>
         </h2>
-        <p className="text-lg font-mono text-gray-400 mt-1">
+        <p className="text-lg font-mono text-gray-500 dark:text-gray-400 mt-1">
           Overs: {currentOver}.{currentBall} ({totalOvers})
         </p>
       </div>

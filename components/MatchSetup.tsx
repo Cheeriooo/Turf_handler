@@ -73,7 +73,7 @@ const MatchSetup: React.FC<MatchSetupProps> = ({ onMatchStart }) => {
     setName: (name: string) => void,
     players: string[]
   ) => (
-    <div className="bg-[#161B22] p-5 rounded-xl space-y-4 shadow-lg">
+    <div className="bg-white dark:bg-[#161B22] p-5 rounded-xl space-y-4 shadow-lg border border-gray-200 dark:border-transparent">
       <h2 className="text-xl font-bold text-[#3B82F6] flex items-center gap-2">
         <UsersIcon className="w-6 h-6" /> {name || (team === 'team1' ? 'Team 1' : 'Team 2')}
       </h2>
@@ -82,7 +82,7 @@ const MatchSetup: React.FC<MatchSetupProps> = ({ onMatchStart }) => {
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder="Enter Team Name"
-        className="w-full p-3 bg-[#0D1117] border border-gray-700 rounded-lg focus:ring-2 focus:ring-[#3B82F6] outline-none transition"
+        className="w-full p-3 bg-gray-100 dark:bg-[#0D1117] border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-[#3B82F6] outline-none transition text-gray-800 dark:text-white"
         required
       />
       <div className="space-y-3">
@@ -93,12 +93,12 @@ const MatchSetup: React.FC<MatchSetupProps> = ({ onMatchStart }) => {
               value={player}
               onChange={(e) => handlePlayerChange(team, index, e.target.value)}
               placeholder={`Player ${index + 1}`}
-              className="w-full p-3 bg-[#0D1117] border border-gray-700 rounded-lg focus:ring-2 focus:ring-[#3B82F6] outline-none transition"
+              className="w-full p-3 bg-gray-100 dark:bg-[#0D1117] border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-[#3B82F6] outline-none transition text-gray-800 dark:text-white"
               data-team={team}
               data-index={index}
               required
             />
-            <button type="button" onClick={() => removePlayer(team, index)} className="p-2 text-white bg-[#EF4444] rounded-full hover:bg-red-700 disabled:opacity-50 transition flex-shrink-0" disabled={players.length <= 2}>
+            <button type="button" onClick={() => removePlayer(team, index)} className="p-2 text-white bg-red-500 dark:bg-[#EF4444] rounded-full hover:bg-red-600 dark:hover:bg-red-700 disabled:opacity-50 transition flex-shrink-0" disabled={players.length <= 2}>
               <CloseIcon className="w-4 h-4" />
             </button>
           </div>
@@ -111,11 +111,11 @@ const MatchSetup: React.FC<MatchSetupProps> = ({ onMatchStart }) => {
   );
 
   return (
-    <div className="min-h-screen bg-[#0D1117] text-white p-4 font-sans">
+    <div className="min-h-screen bg-gray-50 dark:bg-[#0D1117] text-gray-800 dark:text-white p-4 font-sans">
       <div className="max-w-md mx-auto animate-slide-up-fade-in py-6">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold">Match Setup</h1>
-          <p className="text-[#9CA3AF] mt-2">Set up your teams and overs to start the game.</p>
+          <p className="text-gray-500 dark:text-[#9CA3AF] mt-2">Set up your teams and overs to start the game.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -123,12 +123,12 @@ const MatchSetup: React.FC<MatchSetupProps> = ({ onMatchStart }) => {
           {renderTeamCard('team2', team2Name, setTeam2Name, team2Players)}
           
           <div className="text-center py-4">
-            <label className="block text-lg font-medium mb-2 text-[#9CA3AF]">Total Overs</label>
+            <label className="block text-lg font-medium mb-2 text-gray-600 dark:text-[#9CA3AF]">Total Overs</label>
             <input
               type="number"
               value={totalOvers}
               onChange={(e) => setTotalOvers(Math.max(1, parseInt(e.target.value, 10)))}
-              className="w-32 p-3 text-center text-xl font-bold bg-[#161B22] border border-gray-700 rounded-lg focus:ring-2 focus:ring-[#3B82F6] outline-none"
+              className="w-32 p-3 text-center text-xl font-bold bg-white dark:bg-[#161B22] border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-[#3B82F6] outline-none text-gray-800 dark:text-white"
               min="1"
               max="50"
               required
@@ -138,11 +138,11 @@ const MatchSetup: React.FC<MatchSetupProps> = ({ onMatchStart }) => {
           <button
             type="submit"
             disabled={!isFormValid}
-            className="w-full py-4 text-xl font-bold text-white bg-gradient-to-r from-[#F59E0B] to-[#F97316] rounded-xl hover:scale-[1.02] transition-transform duration-200 focus:outline-none focus:ring-4 focus:ring-yellow-500/50 disabled:bg-gray-600 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed disabled:scale-100 flex items-center justify-center gap-2"
+            className="w-full py-4 text-xl font-bold text-white bg-gradient-to-r from-[#F59E0B] to-[#F97316] rounded-xl hover:scale-[1.02] transition-transform duration-200 focus:outline-none focus:ring-4 focus:ring-yellow-500/50 disabled:bg-gray-500 disabled:from-gray-500 disabled:to-gray-600 dark:disabled:bg-gray-600 dark:disabled:from-gray-600 dark:disabled:to-gray-700 disabled:cursor-not-allowed disabled:scale-100 flex items-center justify-center gap-2"
           >
             <BatIcon className="w-6 h-6" /> Start Match
           </button>
-          {!isFormValid && <p className="text-center text-[#EF4444] text-sm mt-2">Each team must have at least 2 players with valid names.</p>}
+          {!isFormValid && <p className="text-center text-red-500 dark:text-[#EF4444] text-sm mt-2">Each team must have at least 2 players with valid names.</p>}
         </form>
       </div>
     </div>

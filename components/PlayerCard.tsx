@@ -47,14 +47,14 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
     return (
       <div>
         <div className="flex justify-between items-center mb-1">
-          <label className="font-semibold text-[#9CA3AF]">{label}</label>
+          <label className="font-semibold text-gray-600 dark:text-[#9CA3AF]">{label}</label>
           {s && <span className="font-mono text-sm whitespace-nowrap">{s.runs}<span className="text-gray-500">({s.balls})</span></span>}
         </div>
         <select
           value={selectedId || ''}
           onChange={(e) => onChange(e.target.value)}
           disabled={isMatchOver}
-          className="w-full p-3 bg-[#0D1117] border border-gray-700 rounded-lg focus:ring-2 focus:ring-[#3B82F6] outline-none transition disabled:opacity-50"
+          className="w-full p-3 bg-gray-100 dark:bg-[#0D1117] border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-[#3B82F6] outline-none transition disabled:opacity-50 text-gray-800 dark:text-white"
           aria-label={`Select ${label}`}
         >
           <option value="" disabled>{selectedPlayer ? selectedPlayer.name : 'Select...'}</option>
@@ -73,7 +73,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
     const overs = Math.floor(s.ballsDelivered / 6);
     const balls = s.ballsDelivered % 6;
     return (
-      <div key={player.id} className="flex justify-between items-center bg-[#0D1117] p-3 rounded-lg">
+      <div key={player.id} className="flex justify-between items-center bg-gray-100 dark:bg-[#0D1117] p-3 rounded-lg">
         <span className="font-semibold truncate">{player.name}</span>
         <span className="font-mono text-sm">{overs}.{balls}-{s.maidenOvers}-{s.runsConceded}-{s.wickets}</span>
       </div>
@@ -83,7 +83,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
   const activePlayer = players.find(p => p.id === activePlayerId);
 
   return (
-    <div className="bg-[#161B22] rounded-xl p-4 h-full">
+    <div className="bg-white dark:bg-[#161B22] rounded-xl p-4 h-full shadow-md">
       <h3 className="text-xl font-bold mb-4 flex items-center gap-2 text-[#3B82F6]">
         {isBattingCard ? <BatIcon className="w-6 h-6" /> : <BallIcon className="w-6 h-6" />} {title}
       </h3>
@@ -99,13 +99,13 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
              <select 
                value={activePlayerId} 
                onChange={(e) => onPlayerSelect(e.target.value)}
-               className="w-full p-3 bg-[#0D1117] border border-gray-700 rounded-lg focus:ring-2 focus:ring-[#3B82F6] outline-none transition"
+               className="w-full p-3 bg-gray-100 dark:bg-[#0D1117] border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-[#3B82F6] outline-none transition text-gray-800 dark:text-white"
              >
               {players.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
              </select>
           ) : activePlayer ? renderBowler(activePlayer) : <p className="text-gray-400">Select bowler</p>}
           {activePlayer && (
-            <div className="text-right text-sm text-[#9CA3AF] pt-2">
+            <div className="text-right text-sm text-gray-500 dark:text-[#9CA3AF] pt-2">
               Eco: <span className="font-mono">{(stats[activePlayerId] as BowlerStats).economy}</span>
             </div>
           )}
