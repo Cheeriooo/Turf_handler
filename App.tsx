@@ -4,8 +4,6 @@ import MatchSetup from './components/MatchSetup';
 import Scoreboard from './components/Scoreboard';
 import PlayerCard from './components/PlayerCard';
 import ScoringControls from './components/ScoringControls';
-import ThemeToggle from './components/ThemeToggle';
-import BoundaryAlert from './components/BoundaryAlert';
 import { UndoIcon } from './components/icons';
 
 type ScoringEvent = 
@@ -29,34 +27,7 @@ const App: React.FC = () => {
     return null;
   });
   
-  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      const savedTheme = window.localStorage.getItem('cricket-theme');
-      if (savedTheme === 'light' || savedTheme === 'dark') {
-        return savedTheme;
-      }
-      if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-        return 'dark';
-      }
-    }
-    return 'light';
-  });
-
-  const [boundaryAlertType, setBoundaryAlertType] = useState<4 | 6 | null>(null);
   const [scoreAnimationKey, setScoreAnimationKey] = useState(0);
-
-  useEffect(() => {
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-      document.querySelector('body')?.classList.add('bg-[#0D1117]');
-      document.querySelector('body')?.classList.remove('bg-gray-50');
-    } else {
-      document.documentElement.classList.remove('dark');
-      document.querySelector('body')?.classList.add('bg-gray-50');
-      document.querySelector('body')?.classList.remove('bg-[#0D1117]');
-    }
-    localStorage.setItem('cricket-theme', theme);
-  }, [theme]);
 
   useEffect(() => {
     if (matchState) {
@@ -211,12 +182,7 @@ const App: React.FC = () => {
   const handleScore = (event: ScoringEvent) => {
     if (!matchState || (matchState.isMatchOver && event.type !== 'UNDO')) return;
     
-    if (event.type === 'RUNS') {
-        setScoreAnimationKey(prev => prev + 1);
-        if (event.runs === 4 || event.runs === 6) {
-          setBoundaryAlertType(event.runs);
-        }
-    } else if (event.type !== 'UNDO') {
+    if (event.type !== 'UNDO') {
         setScoreAnimationKey(prev => prev + 1);
     }
 
@@ -373,14 +339,11 @@ const App: React.FC = () => {
   }, [matchState]);
 
   return (
-    <div className="bg-gray-50 dark:bg-[#0D1117] text-gray-800 dark:text-white font-sans min-h-screen transition-colors duration-300 relative">
-      <ThemeToggle theme={theme} setTheme={setTheme} />
-      
+    <div className="bg-[#0D1117] text-white font-sans min-h-screen relative">
       {!matchState ? (
         <MatchSetup onMatchStart={handleMatchStart} />
       ) : (
         <>
-          <BoundaryAlert boundaryType={boundaryAlertType} />
           <main className="max-w-4xl mx-auto p-4 pb-56">
             <Scoreboard 
               score={matchState.score}
@@ -417,14 +380,14 @@ const App: React.FC = () => {
                 />
               </div>
               
-               <div className="bg-white dark:bg-[#161B22] rounded-xl p-4 shadow-md">
-                  <h3 className="text-lg font-semibold mb-3 text-gray-500 dark:text-[#9CA3AF]">This Over</h3>
+               <div className="bg-[#161B22] rounded-xl p-4 shadow-md">
+                  <h3 className="text-lg font-semibold mb-3 text-[#9CA3AF]">This Over</h3>
                   <div className="flex flex-wrap gap-2">
                     {matchState.currentOverHistory.map((event, i) => (
                       <span key={i} className={`flex items-center justify-center w-9 h-9 rounded-full text-sm font-bold ${
-                        event.isWicket ? 'bg-red-500 dark:bg-[#EF4444] text-white' : 
-                        event.runs === 4 || event.runs === 6 ? 'bg-blue-500 dark:bg-[#3B82F6] text-white' :
-                        event.isExtra ? 'bg-yellow-400 dark:bg-[#F59E0B] text-black' : 'bg-gray-200 dark:bg-[#0D1117] text-gray-800 dark:text-white'
+                        event.isWicket ? 'bg-[#EF4444] text-white' : 
+                        event.runs === 4 || event.runs === 6 ? 'bg-[#3B82F6] text-white' :
+                        event.isExtra ? 'bg-[#F59E0B] text-black' : 'bg-[#0D1117] text-white'
                       }`}>
                         {event.display}
                       </span>
@@ -434,7 +397,7 @@ const App: React.FC = () => {
             </div>
           </main>
           
-          <footer className="fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-[#161B22]/80 backdrop-blur-sm border-t border-gray-200 dark:border-gray-700 z-50">
+          <footer className="fixed bottom-0 left-0 right-0 bg-[#161B22]/80 backdrop-blur-sm border-t border-gray-700 z-50">
             <div className="max-w-4xl mx-auto p-4">
               {isFirstInningsOver && !matchState.isMatchOver && (
                 <div className="flex justify-center items-center">
@@ -449,13 +412,13 @@ const App: React.FC = () => {
               
               {matchState.isMatchOver && (
                 <div className="text-center space-y-4">
-                  <div className="bg-green-100/50 dark:bg-green-900/50 rounded-lg p-4">
-                    <h2 className="text-2xl font-bold text-green-700 dark:text-green-300">Match Over</h2>
+                  <div className="bg-green-900/50 rounded-lg p-4">
+                    <h2 className="text-2xl font-bold text-green-300">Match Over</h2>
                     <p className="text-lg mt-1">{matchState.matchOverMessage}</p>
                   </div>
                   <button
                     onClick={handleResetMatch}
-                    className="w-full max-w-sm mx-auto py-3 text-lg font-bold text-white bg-gradient-to-r from-blue-600 to-blue-800 dark:from-[#3B82F6] dark:to-[#1E40AF] rounded-xl hover:scale-102 transition-transform"
+                    className="w-full max-w-sm mx-auto py-3 text-lg font-bold text-white bg-gradient-to-r from-[#3B82F6] to-[#1E40AF] rounded-xl hover:scale-102 transition-transform"
                   >
                     Start New Match
                   </button>
@@ -469,13 +432,13 @@ const App: React.FC = () => {
                     <button 
                         onClick={() => handleScore({ type: 'UNDO' })} 
                         disabled={!matchState.lastEvent || matchState.isMatchOver}
-                        className="flex-1 flex items-center justify-center gap-2 p-2 bg-yellow-400 dark:bg-[#F59E0B] text-black rounded-lg font-semibold hover:bg-yellow-500 dark:hover:bg-yellow-400 transition disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed"
+                        className="flex-1 flex items-center justify-center gap-2 p-2 bg-[#F59E0B] text-black rounded-lg font-semibold hover:bg-yellow-400 transition disabled:bg-gray-600 disabled:cursor-not-allowed"
                     >
                         <UndoIcon className="w-5 h-5" /> Undo
                     </button>
                     <button
                         onClick={handleResetMatch}
-                        className="flex-1 p-2 bg-red-500 dark:bg-[#EF4444] text-white rounded-lg font-semibold hover:bg-red-600 transition"
+                        className="flex-1 p-2 bg-[#EF4444] text-white rounded-lg font-semibold hover:bg-red-600 transition"
                     >
                         Reset Match
                     </button>
