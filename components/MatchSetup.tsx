@@ -1,18 +1,17 @@
-
 import React, { useState } from 'react';
-import type { FightSetupData } from '../types';
+import type { MatchSetupData } from '../types';
 import { UsersIcon } from './icons';
 
-interface FightSetupProps {
-  onFightStart: (data: FightSetupData) => void;
+interface MatchSetupProps {
+  onMatchStart: (data: MatchSetupData) => void;
 }
 
-const FightSetup: React.FC<FightSetupProps> = ({ onFightStart }) => {
+const MatchSetup: React.FC<MatchSetupProps> = ({ onMatchStart }) => {
   const [team1Name, setTeam1Name] = useState('Team A');
   const [team2Name, setTeam2Name] = useState('Team B');
-  const [team1Players, setTeam1Players] = useState<string[]>(['A Player 1', 'A Player 2']);
-  const [team2Players, setTeam2Players] = useState<string[]>(['B Player 1', 'B Player 2']);
-  const [totalRounds, setTotalRounds] = useState(5);
+  const [team1Players, setTeam1Players] = useState<string[]>(['Player 1', 'Player 2', 'Player 3']);
+  const [team2Players, setTeam2Players] = useState<string[]>(['Player 1', 'Player 2', 'Player 3']);
+  const [totalOvers, setTotalOvers] = useState(5);
 
   const handlePlayerChange = (team: 'team1' | 'team2', index: number, value: string) => {
     const players = team === 'team1' ? [...team1Players] : [...team2Players];
@@ -26,9 +25,9 @@ const FightSetup: React.FC<FightSetupProps> = ({ onFightStart }) => {
   
   const addPlayer = (team: 'team1' | 'team2') => {
     if (team === 'team1') {
-      if (team1Players.length < 11) setTeam1Players([...team1Players, `A Player ${team1Players.length + 1}`]);
+      if (team1Players.length < 11) setTeam1Players([...team1Players, `Player ${team1Players.length + 1}`]);
     } else {
-      if (team2Players.length < 11) setTeam2Players([...team2Players, `B Player ${team2Players.length + 1}`]);
+      if (team2Players.length < 11) setTeam2Players([...team2Players, `Player ${team2Players.length + 1}`]);
     }
   };
 
@@ -43,12 +42,12 @@ const FightSetup: React.FC<FightSetupProps> = ({ onFightStart }) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onFightStart({
+    onMatchStart({
       team1Name,
       team2Name,
       team1Players: team1Players.map(p => p.trim()).filter(p => p),
       team2Players: team2Players.map(p => p.trim()).filter(p => p),
-      totalRounds,
+      totalOvers,
     });
   };
 
@@ -56,10 +55,10 @@ const FightSetup: React.FC<FightSetupProps> = ({ onFightStart }) => {
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-4xl mx-auto bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-6">
+      <div className="max-w-4xl mx-auto bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-6 animate-slide-up-fade-in">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-resolver-blue">Fight Resolver Setup</h1>
-          <p className="text-gray-500 mt-2">Configure your fight details to get started.</p>
+          <h1 className="text-4xl font-bold text-resolver-blue">Fight Resolver</h1>
+          <p className="text-gray-500 mt-2">Cricket Match Setup</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-8">
@@ -132,11 +131,11 @@ const FightSetup: React.FC<FightSetupProps> = ({ onFightStart }) => {
           </div>
 
           <div className="text-center">
-            <label className="block text-lg font-medium mb-2">Total Rounds</label>
+            <label className="block text-lg font-medium mb-2">Total Overs</label>
             <input
               type="number"
-              value={totalRounds}
-              onChange={(e) => setTotalRounds(Math.max(1, parseInt(e.target.value, 10)))}
+              value={totalOvers}
+              onChange={(e) => setTotalOvers(Math.max(1, parseInt(e.target.value, 10)))}
               className="w-32 p-2 border rounded text-center text-xl font-bold bg-gray-50 dark:bg-gray-800 dark:border-gray-600 focus:ring-2 focus:ring-resolver-blue outline-none"
               min="1"
               required
@@ -148,7 +147,7 @@ const FightSetup: React.FC<FightSetupProps> = ({ onFightStart }) => {
             disabled={!isFormValid}
             className="w-full py-4 text-xl font-bold text-white bg-resolver-blue rounded-lg hover:bg-blue-700 transition-colors duration-300 focus:outline-none focus:ring-4 focus:ring-blue-300 disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
-            Start Fight
+            Start Match
           </button>
           {!isFormValid && <p className="text-center text-red-500 text-sm mt-2">Each team must have at least 2 players with valid names.</p>}
         </form>
@@ -157,4 +156,4 @@ const FightSetup: React.FC<FightSetupProps> = ({ onFightStart }) => {
   );
 };
 
-export default FightSetup;
+export default MatchSetup;

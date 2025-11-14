@@ -4,7 +4,7 @@ export interface Player {
   name: string;
 }
 
-export interface DefenderStats {
+export interface BatsmanStats {
   runs: number;
   balls: number;
   bonus4: number;
@@ -13,67 +13,64 @@ export interface DefenderStats {
   strikeRate: number;
 }
 
-export interface AttackerStats {
-  rounds: number;
-  turnsDelivered: number;
+export interface BowlerStats {
+  overs: number;
+  ballsDelivered: number;
   runsConceded: number;
   wickets: number;
-  perfectRounds: number;
+  maidenOvers: number;
   economy: number;
-  warnings: {
-    firstBounce: boolean;
-  };
 }
 
-export interface RoundEvent {
+export interface OverEvent {
   runs: number;
   isExtra: boolean;
   isWicket: boolean;
   display: string;
 }
 
-export interface FightState {
+export interface MatchState {
   team1: { name: string; players: Player[] };
   team2: { name: string; players: Player[] };
-  totalRounds: number;
-  isFightStarted: boolean;
+  totalOvers: number;
+  isMatchStarted: boolean;
 
   battingTeam: 'team1' | 'team2';
   bowlingTeam: 'team1' | 'team2';
 
-  defenderId: string | null;
-  supportId: string | null;
-  attackerId: string | null;
+  strikerId: string | null;
+  nonStrikerId: string | null;
+  bowlerId: string | null;
 
-  defenderStats: Record<string, DefenderStats>;
-  attackerStats: Record<string, AttackerStats>;
+  batsmanStats: Record<string, BatsmanStats>;
+  bowlerStats: Record<string, BowlerStats>;
   
   score: number;
-  playersOut: number;
-  currentRound: number;
-  currentTurn: number;
+  wickets: number;
+  currentOver: number;
+  currentBall: number;
   
-  currentRoundHistory: RoundEvent[];
-  allRoundsHistory: RoundEvent[][];
+  currentOverHistory: OverEvent[];
+  allOversHistory: OverEvent[][];
   
-  lastEvent: FightState | null; // For undo
+  lastEvent: MatchState | null; // For undo
   
-  isFightOver: boolean;
-  fightOverMessage: string;
+  isMatchOver: boolean;
+  matchOverMessage: string;
   
-  nextDefenderIndex: number;
+  nextBatsmanIndex: number;
 
-  currentRoundNumber: 1 | 2;
-  firstRoundResult: {
+  currentInnings: 1 | 2;
+  firstInningsResult: {
     score: number;
-    playersOut: number;
+    wickets: number;
   } | null;
 }
 
-export interface FightSetupData {
+export interface MatchSetupData {
   team1Name: string;
   team2Name: string;
   team1Players: string[];
   team2Players: string[];
-  totalRounds: number;
+  totalOvers: number;
 }

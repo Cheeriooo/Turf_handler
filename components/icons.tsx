@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 export const ShieldIcon: React.FC<{ className?: string }> = ({ className }) => (
@@ -29,4 +28,20 @@ export const UndoIcon: React.FC<{ className?: string }> = ({ className }) => (
         <path d="M3 7v6h6" />
         <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" />
     </svg>
+);
+
+export const BatIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="m7.5 21 5-5" />
+    <path d="M22 12a4.5 4.5 0 0 0-4.5-4.5 4.5 4.5 0 0 0-4.5 4.5 4.5 4.5 0 0 0 4.5 4.5 4.5 4.5 0 0 0 4.5-4.5Z" />
+    <path d="M11 13 2 22" />
+  </svg>
+);
+
+export const BallIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <circle cx="12" cy="12" r="10" />
+    <path d="M12 12a5.2 5.2 0 0 0-5.2 5.2c1.9 1.9 4.9 2.7 7.2 2.2" />
+    <path d="M12 12a5.2 5.2 0 0 1 5.2 5.2c-1.9 1.9-4.9 2.7-7.2 2.2" />
+  </svg>
 );
