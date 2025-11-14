@@ -18,24 +18,23 @@ const ScoringControls: React.FC<ScoringControlsProps> = ({ onScore, isMatchOver 
   const handleOut = () => onScore({ type: 'OUT' });
 
   return (
-    <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
-      <h3 className="text-xl font-bold mb-4 text-center">Scoring</h3>
-      <div className="grid grid-cols-3 md:grid-cols-6 gap-2 mb-4">
+    <div>
+      <div className="grid grid-cols-6 gap-2 mb-3">
         {runButtons.map(runs => (
           <button
             key={runs}
             onClick={() => handleScore(runs)}
             disabled={isMatchOver}
-            className="py-4 text-xl font-bold text-white bg-resolver-blue rounded-lg hover:bg-blue-700 transition-colors duration-300 focus:outline-none focus:ring-4 focus:ring-blue-300 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            className="py-3 text-lg font-bold text-white bg-[#3B82F6] rounded-lg hover:bg-blue-500 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:bg-gray-600 disabled:cursor-not-allowed"
           >
             {runs}
           </button>
         ))}
       </div>
       <div className="grid grid-cols-3 gap-2">
-        <button onClick={() => handleExtra('Wide')} disabled={isMatchOver} className="py-3 font-semibold text-gray-800 bg-yellow-400 rounded-lg hover:bg-yellow-500 transition disabled:bg-gray-400 disabled:cursor-not-allowed">Wide</button>
-        <button onClick={() => handleExtra('No Ball')} disabled={isMatchOver} className="py-3 font-semibold text-gray-800 bg-yellow-400 rounded-lg hover:bg-yellow-500 transition disabled:bg-gray-400 disabled:cursor-not-allowed">No Ball</button>
-        <button onClick={handleOut} disabled={isMatchOver} className="py-3 font-semibold text-white bg-action-red rounded-lg hover:bg-red-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed">OUT</button>
+        <button onClick={() => handleExtra('Wide')} disabled={isMatchOver} className="py-2 font-semibold text-black bg-[#F59E0B] rounded-lg hover:bg-yellow-400 transition disabled:bg-gray-600 disabled:cursor-not-allowed">Wide</button>
+        <button onClick={() => handleExtra('No Ball')} disabled={isMatchOver} className="py-2 font-semibold text-black bg-[#F59E0B] rounded-lg hover:bg-yellow-400 transition disabled:bg-gray-600 disabled:cursor-not-allowed">No Ball</button>
+        <button onClick={handleOut} disabled={isMatchOver} className="py-2 font-semibold text-white bg-[#EF4444] rounded-lg hover:bg-red-600 transition disabled:bg-gray-600 disabled:cursor-not-allowed">OUT</button>
       </div>
     </div>
   );

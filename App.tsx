@@ -248,7 +248,7 @@ const App: React.FC = () => {
       }
 
       // Update stats
-      if (!newState.batsmanStats[strikerId].isOut) {
+      if (legalBall && !newState.batsmanStats[strikerId].isOut) {
         newState.batsmanStats[strikerId].balls += 1;
         const { runs, balls } = newState.batsmanStats[strikerId];
         newState.batsmanStats[strikerId].strikeRate = balls > 0 ? parseFloat(((runs / balls) * 100).toFixed(2)) : 0;
@@ -349,8 +349,9 @@ const App: React.FC = () => {
   const canUndo = !!lastEvent;
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 p-2 sm:p-4 font-sans">
-      <div className="max-w-7xl mx-auto bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-4 space-y-4">
+    <div className="min-h-screen bg-[#0D1117] text-white font-sans">
+      {/* Main content area with padding-bottom to avoid being obscured by the fixed footer */}
+      <main className="max-w-4xl mx-auto p-4 pb-56">
         <Scoreboard 
           score={score}
           wickets={wickets}
@@ -362,87 +363,89 @@ const App: React.FC = () => {
           currentInnings={currentInnings}
         />
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="lg:col-span-2 space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <PlayerCard
-                title="Batsmen"
-                players={availableBatsmen}
-                stats={batsmanStats}
-                isBattingCard
-                strikerId={strikerId}
-                nonStrikerId={nonStrikerId}
-                onStrikerChange={handleStrikerChange}
-                onNonStrikerChange={handleNonStrikerChange}
-                isMatchOver={isMatchOver}
-              />
-              <PlayerCard 
-                title="Bowler"
-                players={bowlingTeamPlayers}
-                stats={bowlerStats}
-                activePlayerId={bowlerId}
-                onPlayerSelect={handleBowlerChange}
-                isOverStarting={currentBall === 0 && currentOver < totalOvers}
-              />
-            </div>
-            
-            {!isMatchOver && !isFirstInningsOver && (
-              <ScoringControls onScore={handleScore} isMatchOver={isMatchOver} />
-            )}
-
-            {isFirstInningsOver && !isMatchOver && (
-              <div className="flex justify-center items-center p-8 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                <button 
-                  onClick={startSecondInnings}
-                  className="px-8 py-4 text-xl font-bold text-white bg-resolver-blue rounded-lg hover:bg-blue-700 transition-colors duration-300"
-                >
-                  Start 2nd Innings
-                </button>
-              </div>
-            )}
-            
-            {isMatchOver && (
-              <div className="text-center p-8 bg-green-100 dark:bg-green-900 rounded-lg">
-                <h2 className="text-3xl font-bold text-green-700 dark:text-green-300">Match Over</h2>
-                <p className="text-xl mt-2">{matchOverMessage}</p>
-              </div>
-            )}
-
+        <div className="mt-6 space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <PlayerCard
+              title="Batsmen"
+              players={availableBatsmen}
+              stats={batsmanStats}
+              isBattingCard
+              strikerId={strikerId}
+              nonStrikerId={nonStrikerId}
+              onStrikerChange={handleStrikerChange}
+              onNonStrikerChange={handleNonStrikerChange}
+              isMatchOver={isMatchOver}
+            />
+            <PlayerCard 
+              title="Bowler"
+              players={bowlingTeamPlayers}
+              stats={bowlerStats}
+              activePlayerId={bowlerId}
+              onPlayerSelect={handleBowlerChange}
+              isOverStarting={currentBall === 0 && currentOver < totalOvers}
+            />
           </div>
+          
+           <div className="bg-[#161B22] rounded-xl p-4">
+              <h3 className="text-lg font-semibold mb-3 text-[#9CA3AF]">This Over</h3>
+              <div className="flex flex-wrap gap-2">
+                {currentOverHistory.map((event, i) => (
+                  <span key={i} className={`flex items-center justify-center w-9 h-9 rounded-full text-sm font-bold ${
+                    event.isWicket ? 'bg-[#EF4444] text-white' : 
+                    event.runs === 4 || event.runs === 6 ? 'bg-[#3B82F6] text-white' :
+                    event.isExtra ? 'bg-[#F59E0B] text-black' : 'bg-[#0D1117] text-white'
+                  }`}>
+                    {event.display}
+                  </span>
+                ))}
+              </div>
+           </div>
+        </div>
+      </main>
 
-          <div className="space-y-4">
-             <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
-                <h3 className="text-lg font-semibold mb-2 border-b pb-2 dark:border-gray-700">This Over</h3>
-                <div className="flex flex-wrap gap-2">
-                  {currentOverHistory.map((event, i) => (
-                    <span key={i} className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold ${
-                      event.isWicket ? 'bg-red-500 text-white' : 
-                      event.runs === 4 || event.runs === 6 ? 'bg-blue-500 text-white' :
-                      event.isExtra ? 'bg-yellow-400 text-gray-800' : 'bg-gray-200 dark:bg-gray-700'
-                    }`}>
-                      {event.display}
-                    </span>
-                  ))}
-                </div>
-             </div>
-             <div className="flex gap-2 mt-4">
+      {/* Fixed Footer for Scoring Controls */}
+      <footer className="fixed bottom-0 left-0 right-0 bg-[#161B22]/80 backdrop-blur-sm border-t border-gray-700 z-50">
+        <div className="max-w-4xl mx-auto p-4">
+          {isFirstInningsOver && !isMatchOver && (
+            <div className="flex justify-center items-center">
+              <button 
+                onClick={startSecondInnings}
+                className="px-8 py-4 text-xl font-bold text-white bg-gradient-to-r from-[#F59E0B] to-[#F97316] rounded-xl hover:scale-105 transition-transform"
+              >
+                Start 2nd Innings
+              </button>
+            </div>
+          )}
+          
+          {isMatchOver && (
+            <div className="text-center py-4 bg-green-900/50 rounded-lg">
+              <h2 className="text-2xl font-bold text-green-300">Match Over</h2>
+              <p className="text-lg mt-1">{matchOverMessage}</p>
+            </div>
+          )}
+
+          {!isMatchOver && !isFirstInningsOver && (
+            <>
+              <ScoringControls onScore={handleScore} isMatchOver={isMatchOver} />
+              <div className="flex gap-2 mt-4">
                 <button 
                     onClick={() => handleScore({ type: 'UNDO' })} 
                     disabled={!canUndo || isMatchOver}
-                    className="flex-1 flex items-center justify-center gap-2 p-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    className="flex-1 flex items-center justify-center gap-2 p-2 bg-[#F59E0B] text-black rounded-lg font-semibold hover:bg-yellow-400 transition disabled:bg-gray-600 disabled:cursor-not-allowed"
                 >
                     <UndoIcon className="w-5 h-5" /> Undo
                 </button>
                 <button
                     onClick={handleResetMatch}
-                    className="flex-1 p-2 bg-action-red text-white rounded-lg hover:bg-red-700 transition"
+                    className="flex-1 p-2 bg-[#EF4444] text-white rounded-lg font-semibold hover:bg-red-600 transition"
                 >
                     Reset Match
                 </button>
-             </div>
-          </div>
+              </div>
+            </>
+          )}
         </div>
-      </div>
+      </footer>
     </div>
   );
 };

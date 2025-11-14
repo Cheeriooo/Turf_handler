@@ -39,34 +39,34 @@ const Scoreboard: React.FC<ScoreboardProps> = ({
     }
   }
 
+  const renderStat = (label: string, value: string | number) => (
+    <div className="bg-black/20 p-2 rounded-lg text-center">
+      <p className="text-xs text-[#9CA3AF] uppercase tracking-wider">{label}</p>
+      <p className="text-xl font-bold font-mono">{value}</p>
+    </div>
+  );
+
   return (
-    <div className="bg-gray-800 dark:bg-black text-white rounded-lg p-4 shadow-lg flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
+    <div className="bg-gradient-to-b from-[#161B22] to-[#0D1117] border border-gray-700 text-white rounded-xl p-4 shadow-lg flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
       <div className="text-center sm:text-left">
-        <p className="text-lg font-semibold text-gray-400">{battingTeamName}</p>
-        <h2 className="text-4xl sm:text-5xl font-bold tracking-tight">
-          {score} / {wickets}
+        <p className="text-lg font-semibold text-[#9CA3AF]">{battingTeamName}</p>
+        <h2 className="text-5xl font-bold tracking-tight">
+          {score}<span className="text-4xl text-gray-400">/{wickets}</span>
         </h2>
-        <p className="text-lg font-mono">
-          Overs: {currentOver}.{currentBall} / {totalOvers}
+        <p className="text-lg font-mono text-gray-400 mt-1">
+          Overs: {currentOver}.{currentBall} ({totalOvers})
         </p>
       </div>
 
-      <div className="flex gap-4 sm:gap-8 text-center">
-        <div>
-          <p className="text-sm text-gray-400">CRR</p>
-          <p className="text-2xl font-bold">{crr}</p>
-        </div>
-        {currentInnings === 2 && (
+      <div className="grid grid-cols-3 gap-2 text-center w-full sm:w-auto">
+        {renderStat('CRR', crr)}
+        {currentInnings === 2 ? (
           <>
-            <div>
-              <p className="text-sm text-gray-400">Target</p>
-              <p className="text-2xl font-bold">{target}</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-400">RRR</p>
-              <p className="text-2xl font-bold">{rrr}</p>
-            </div>
+            {renderStat('Target', target)}
+            {renderStat('RRR', rrr)}
           </>
+        ) : (
+          <div className="col-span-2"></div>
         )}
       </div>
     </div>
