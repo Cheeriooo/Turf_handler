@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { MatchSetupData } from '../types';
-import { UsersIcon } from './icons';
+import { UsersIcon, PlusIcon, CloseIcon, BatIcon } from './icons';
 
 interface MatchSetupProps {
   onMatchStart: (data: MatchSetupData) => void;
@@ -12,6 +12,15 @@ const MatchSetup: React.FC<MatchSetupProps> = ({ onMatchStart }) => {
   const [team1Players, setTeam1Players] = useState<string[]>(['Player 1', 'Player 2', 'Player 3']);
   const [team2Players, setTeam2Players] = useState<string[]>(['Player 1', 'Player 2', 'Player 3']);
   const [totalOvers, setTotalOvers] = useState(5);
+  const [lastAddedPlayer, setLastAddedPlayer] = useState<{ team: 'team1' | 'team2', index: number } | null>(null);
+
+  useEffect(() => {
+    if (lastAddedPlayer) {
+      const input = document.querySelector(`[data-team='${lastAddedPlayer.team}'][data-index='${lastAddedPlayer.index}']`) as HTMLInputElement;
+      input?.focus();
+      setLastAddedPlayer(null);
+    }
+  }, [lastAddedPlayer]);
 
   const handlePlayerChange = (team: 'team1' | 'team2', index: number, value: string) => {
     const players = team === 'team1' ? [...team1Players] : [...team2Players];
@@ -25,9 +34,15 @@ const MatchSetup: React.FC<MatchSetupProps> = ({ onMatchStart }) => {
   
   const addPlayer = (team: 'team1' | 'team2') => {
     if (team === 'team1') {
-      if (team1Players.length < 11) setTeam1Players([...team1Players, `Player ${team1Players.length + 1}`]);
+      if (team1Players.length < 11) {
+        setLastAddedPlayer({ team: 'team1', index: team1Players.length });
+        setTeam1Players([...team1Players, '']);
+      }
     } else {
-      if (team2Players.length < 11) setTeam2Players([...team2Players, `Player ${team2Players.length + 1}`]);
+      if (team2Players.length < 11) {
+        setLastAddedPlayer({ team: 'team2', index: team2Players.length });
+        setTeam2Players([...team2Players, '']);
+      }
     }
   };
 
@@ -38,7 +53,6 @@ const MatchSetup: React.FC<MatchSetupProps> = ({ onMatchStart }) => {
       if (team2Players.length > 2) setTeam2Players(team2Players.filter((_, i) => i !== index));
     }
   };
-
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,91 +67,70 @@ const MatchSetup: React.FC<MatchSetupProps> = ({ onMatchStart }) => {
 
   const isFormValid = team1Players.filter(p=>p.trim()).length >= 2 && team2Players.filter(p=>p.trim()).length >= 2;
 
+  const renderTeamCard = (
+    team: 'team1' | 'team2',
+    name: string,
+    setName: (name: string) => void,
+    players: string[]
+  ) => (
+    <div className="bg-[#161B22] p-5 rounded-xl space-y-4 shadow-lg">
+      <h2 className="text-xl font-bold text-[#3B82F6] flex items-center gap-2">
+        <UsersIcon className="w-6 h-6" /> {name || (team === 'team1' ? 'Team 1' : 'Team 2')}
+      </h2>
+      <input
+        type="text"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder="Enter Team Name"
+        className="w-full p-3 bg-[#0D1117] border border-gray-700 rounded-lg focus:ring-2 focus:ring-[#3B82F6] outline-none transition"
+        required
+      />
+      <div className="space-y-3">
+        {players.map((player, index) => (
+          <div key={index} className="flex items-center gap-2">
+            <input
+              type="text"
+              value={player}
+              onChange={(e) => handlePlayerChange(team, index, e.target.value)}
+              placeholder={`Player ${index + 1}`}
+              className="w-full p-3 bg-[#0D1117] border border-gray-700 rounded-lg focus:ring-2 focus:ring-[#3B82F6] outline-none transition"
+              data-team={team}
+              data-index={index}
+              required
+            />
+            <button type="button" onClick={() => removePlayer(team, index)} className="p-2 text-white bg-[#EF4444] rounded-full hover:bg-red-700 disabled:opacity-50 transition flex-shrink-0" disabled={players.length <= 2}>
+              <CloseIcon className="w-4 h-4" />
+            </button>
+          </div>
+        ))}
+      </div>
+      <button type="button" onClick={() => addPlayer(team)} className="w-full p-2 text-[#3B82F6] border-2 border-dashed border-[#3B82F6] rounded-full hover:bg-[#3B82F6]/10 transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed" disabled={players.length >= 11}>
+        <PlusIcon className="w-5 h-5" /> Add Player ({players.length}/11)
+      </button>
+    </div>
+  );
+
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-4xl mx-auto bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-6 animate-slide-up-fade-in">
+    <div className="min-h-screen bg-[#0D1117] text-white p-4 font-sans">
+      <div className="max-w-md mx-auto animate-slide-up-fade-in py-6">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-resolver-blue">Fight Resolver</h1>
-          <p className="text-gray-500 mt-2">Cricket Match Setup</p>
+          <h1 className="text-3xl font-bold">Match Setup</h1>
+          <p className="text-[#9CA3AF] mt-2">Set up your teams and overs to start the game.</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Team 1 */}
-            <div className="space-y-4 p-4 border rounded-lg dark:border-gray-700">
-              <h2 className="text-2xl font-semibold text-resolver-blue flex items-center gap-2"><UsersIcon /> Team 1</h2>
-              <input
-                type="text"
-                value={team1Name}
-                onChange={(e) => setTeam1Name(e.target.value)}
-                placeholder="Team 1 Name"
-                className="w-full p-2 border rounded bg-gray-50 dark:bg-gray-800 dark:border-gray-600 focus:ring-2 focus:ring-resolver-blue outline-none"
-                required
-              />
-              <div className="space-y-2 max-h-80 overflow-y-auto pr-2">
-                {team1Players.map((player, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={player}
-                      onChange={(e) => handlePlayerChange('team1', index, e.target.value)}
-                      placeholder={`Player ${index + 1}`}
-                      className="w-full p-2 border rounded bg-gray-50 dark:bg-gray-800 dark:border-gray-600 focus:ring-2 focus:ring-resolver-blue outline-none"
-                      required
-                    />
-                    <button type="button" onClick={() => removePlayer('team1', index)} className="p-2 text-red-500 hover:text-red-700 disabled:opacity-50" disabled={team1Players.length <= 2}>
-                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                    </button>
-                  </div>
-                ))}
-              </div>
-              <button type="button" onClick={() => addPlayer('team1')} className="w-full p-2 text-resolver-blue border-2 border-dashed border-resolver-blue rounded-lg hover:bg-blue-50 dark:hover:bg-gray-800 transition" disabled={team1Players.length >= 11}>
-                Add Player ({team1Players.length}/11)
-              </button>
-            </div>
-
-            {/* Team 2 */}
-            <div className="space-y-4 p-4 border rounded-lg dark:border-gray-700">
-              <h2 className="text-2xl font-semibold text-resolver-blue flex items-center gap-2"><UsersIcon /> Team 2</h2>
-              <input
-                type="text"
-                value={team2Name}
-                onChange={(e) => setTeam2Name(e.target.value)}
-                placeholder="Team 2 Name"
-                className="w-full p-2 border rounded bg-gray-50 dark:bg-gray-800 dark:border-gray-600 focus:ring-2 focus:ring-resolver-blue outline-none"
-                required
-              />
-              <div className="space-y-2 max-h-80 overflow-y-auto pr-2">
-                {team2Players.map((player, index) => (
-                   <div key={index} className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={player}
-                      onChange={(e) => handlePlayerChange('team2', index, e.target.value)}
-                      placeholder={`Player ${index + 1}`}
-                      className="w-full p-2 border rounded bg-gray-50 dark:bg-gray-800 dark:border-gray-600 focus:ring-2 focus:ring-resolver-blue outline-none"
-                      required
-                    />
-                    <button type="button" onClick={() => removePlayer('team2', index)} className="p-2 text-red-500 hover:text-red-700 disabled:opacity-50" disabled={team2Players.length <= 2}>
-                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                    </button>
-                  </div>
-                ))}
-              </div>
-              <button type="button" onClick={() => addPlayer('team2')} className="w-full p-2 text-resolver-blue border-2 border-dashed border-resolver-blue rounded-lg hover:bg-blue-50 dark:hover:bg-gray-800 transition" disabled={team2Players.length >= 11}>
-                Add Player ({team2Players.length}/11)
-              </button>
-            </div>
-          </div>
-
-          <div className="text-center">
-            <label className="block text-lg font-medium mb-2">Total Overs</label>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {renderTeamCard('team1', team1Name, setTeam1Name, team1Players)}
+          {renderTeamCard('team2', team2Name, setTeam2Name, team2Players)}
+          
+          <div className="text-center py-4">
+            <label className="block text-lg font-medium mb-2 text-[#9CA3AF]">Total Overs</label>
             <input
               type="number"
               value={totalOvers}
               onChange={(e) => setTotalOvers(Math.max(1, parseInt(e.target.value, 10)))}
-              className="w-32 p-2 border rounded text-center text-xl font-bold bg-gray-50 dark:bg-gray-800 dark:border-gray-600 focus:ring-2 focus:ring-resolver-blue outline-none"
+              className="w-32 p-3 text-center text-xl font-bold bg-[#161B22] border border-gray-700 rounded-lg focus:ring-2 focus:ring-[#3B82F6] outline-none"
               min="1"
+              max="50"
               required
             />
           </div>
@@ -145,11 +138,11 @@ const MatchSetup: React.FC<MatchSetupProps> = ({ onMatchStart }) => {
           <button
             type="submit"
             disabled={!isFormValid}
-            className="w-full py-4 text-xl font-bold text-white bg-resolver-blue rounded-lg hover:bg-blue-700 transition-colors duration-300 focus:outline-none focus:ring-4 focus:ring-blue-300 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            className="w-full py-4 text-xl font-bold text-white bg-gradient-to-r from-[#F59E0B] to-[#F97316] rounded-xl hover:scale-[1.02] transition-transform duration-200 focus:outline-none focus:ring-4 focus:ring-yellow-500/50 disabled:bg-gray-600 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed disabled:scale-100 flex items-center justify-center gap-2"
           >
-            Start Match
+            <BatIcon className="w-6 h-6" /> Start Match
           </button>
-          {!isFormValid && <p className="text-center text-red-500 text-sm mt-2">Each team must have at least 2 players with valid names.</p>}
+          {!isFormValid && <p className="text-center text-[#EF4444] text-sm mt-2">Each team must have at least 2 players with valid names.</p>}
         </form>
       </div>
     </div>

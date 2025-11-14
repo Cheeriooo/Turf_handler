@@ -1,5 +1,5 @@
 {
-  "name": "Fight Resolver",
-  "description": "A tool to resolve disputes. Record points, penalties, and declare a winner with a user-friendly interface.",
+  "name": "Cricket Scorer",
+  "description": "A modern, mobile-first cricket match tracker. Set up teams, track scores, and manage your matches with ease.",
   "requestFramePermissions": []
 }
