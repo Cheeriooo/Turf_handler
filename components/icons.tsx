@@ -102,3 +102,35 @@ export const MoonIcon: React.FC<{ className?: string }> = ({ className }) => (
     <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
   </svg>
 );
+
+export const CoinIcon: React.FC<{ className?: string }> = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <circle cx="12" cy="12" r="8" />
+        <path d="M12 2v2" />
+        <path d="M12 20v2" />
+        <path d="m4.93 4.93 1.41 1.41" />
+        <path d="m17.66 17.66 1.41 1.41" />
+        <path d="M2 12h2" />
+        <path d="M20 12h2" />
+        <path d="m4.93 19.07 1.41-1.41" />
+        <path d="m17.66 6.34 1.41-1.41" />
+    </svg>
+);
+
+export const HeadsIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M12 2a4 4 0 0 0-4 4v1.5c0 1.25-.4 2.4-1.1 3.3-.7.9-1.1 2.05-1.1 3.2v2.5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V14c0-1.15-.4-2.3-1.1-3.2-.7-.9-1.1-2.05-1.1-3.3V6a4 4 0 0 0-4-4z" />
+    <path d="M12 19v2" />
+    <path d="M18 19h-2.5" />
+    <path d="M8.5 19H6" />
+    <path d="M3 10h18" />
+  </svg>
+);
+
+export const TailsIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <circle cx="12" cy="12" r="10" />
+    <path d="M12 2a14.3 14.3 0 0 0 0 20 14.3 14.3 0 0 0 0-20" />
+    <path d="M22 12a14.3 14.3 0 0 0-20 0 14.3 14.3 0 0 0 20 0" />
+  </svg>
+);

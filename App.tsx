@@ -2,6 +2,7 @@ import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import type { MatchState, MatchSetupData, Player, BatsmanStats, BowlerStats, OverEvent } from './types';
 import MatchSetup from './components/MatchSetup';
 import MatchHistory from './components/MatchHistory';
+import Toss from './components/Toss';
 import Scoreboard from './components/Scoreboard';
 import PlayerCard from './components/PlayerCard';
 import ScoringControls from './components/ScoringControls';
@@ -16,6 +17,7 @@ type ScoringEvent =
 const App: React.FC = () => {
   const [view, setView] = useState<'main' | 'history'>('main');
   const [matchState, setMatchState] = useState<MatchState | null>(null);
+  const [setupData, setSetupData] = useState<MatchSetupData | null>(null);
   const [scoreAnimationKey, setScoreAnimationKey] = useState(0);
 
   useEffect(() => {
@@ -74,34 +76,52 @@ const App: React.FC = () => {
       return [...matchState.team1.players, ...matchState.team2.players].find(p => p.id === id);
   }, [matchState]);
 
+  const handleSetupComplete = (data: MatchSetupData) => {
+    setSetupData(data);
+  };
 
-  const handleMatchStart = (data: MatchSetupData) => {
-    const team1Players = data.team1Players.map((name, i) => ({ id: `t1p${i}`, name }));
-    const team2Players = data.team2Players.map((name, i) => ({ id: `t2p${i}`, name }));
-    
-    const initialBatsmanStats: Record<string, BatsmanStats> = 
+  const handleTossResult = (winnerTeamKey: 'team1' | 'team2', decision: 'bat' | 'bowl') => {
+    if (!setupData) return;
+
+    const battingTeamKey =
+      decision === 'bat'
+        ? winnerTeamKey
+        : winnerTeamKey === 'team1' ? 'team2' : 'team1';
+
+    const bowlingTeamKey =
+      decision === 'bowl'
+        ? winnerTeamKey
+        : winnerTeamKey === 'team1' ? 'team2' : 'team1';
+
+    const team1Players = setupData.team1Players.map((name, i) => ({ id: `t1p${i}`, name }));
+    const team2Players = setupData.team2Players.map((name, i) => ({ id: `t2p${i}`, name }));
+
+    const initialBatsmanStats: Record<string, BatsmanStats> =
       [...team1Players, ...team2Players].reduce((acc, player) => {
         acc[player.id] = { runs: 0, balls: 0, bonus4: 0, bonus6: 0, isOut: false, strikeRate: 0 };
         return acc;
       }, {} as Record<string, BatsmanStats>);
 
-    const initialBowlerStats: Record<string, BowlerStats> = 
+    const initialBowlerStats: Record<string, BowlerStats> =
       [...team1Players, ...team2Players].reduce((acc, player) => {
         acc[player.id] = { overs: 0, ballsDelivered: 0, runsConceded: 0, wickets: 0, maidenOvers: 0, economy: 0 };
         return acc;
       }, {} as Record<string, BowlerStats>);
 
+    const battingTeamPlayers = battingTeamKey === 'team1' ? team1Players : team2Players;
+    const bowlingTeamPlayers = bowlingTeamKey === 'team1' ? team1Players : team2Players;
+
     setMatchState({
       id: new Date().toISOString(),
-      team1: { name: data.team1Name, players: team1Players },
-      team2: { name: data.team2Name, players: team2Players },
-      totalOvers: data.totalOvers,
+      team1: { name: setupData.team1Name, players: team1Players },
+      team2: { name: setupData.team2Name, players: team2Players },
+      totalOvers: setupData.totalOvers,
       isMatchStarted: true,
-      battingTeam: 'team1',
-      bowlingTeam: 'team2',
-      strikerId: team1Players[0]?.id || null,
-      nonStrikerId: team1Players[1]?.id || null,
-      bowlerId: team2Players[0]?.id || null,
+      battingTeam: battingTeamKey,
+      bowlingTeam: bowlingTeamKey,
+      strikerId: battingTeamPlayers[0]?.id || null,
+      nonStrikerId: battingTeamPlayers[1]?.id || null,
+      bowlerId: bowlingTeamPlayers[0]?.id || null,
       batsmanStats: initialBatsmanStats,
       bowlerStats: initialBowlerStats,
       score: 0,
@@ -117,6 +137,11 @@ const App: React.FC = () => {
       currentInnings: 1,
       firstInningsResult: null,
     });
+    setSetupData(null);
+  };
+  
+  const handleBackToSetup = () => {
+    setSetupData(null);
   };
 
   const handleResetMatch = () => {
@@ -127,6 +152,7 @@ const App: React.FC = () => {
     if (window.confirm(confirmMessage)) {
       localStorage.removeItem('cricketResolverState');
       setMatchState(null);
+      setSetupData(null);
       setView('main');
     }
   };
@@ -372,15 +398,27 @@ const App: React.FC = () => {
     return currentOver >= totalOvers || wickets >= maxWickets;
   }, [matchState]);
 
-  if (view === 'history') {
-    return <MatchHistory onBack={() => setView('main')} />;
-  }
+  const renderContent = () => {
+    if (view === 'history') {
+      return <MatchHistory onBack={() => setView('main')} />;
+    }
 
-  return (
-    <div className="bg-[#0D1117] text-white font-sans min-h-screen relative">
-      {!matchState ? (
-        <MatchSetup onMatchStart={handleMatchStart} onShowHistory={() => setView('history')} />
-      ) : (
+    if (!matchState && setupData) {
+        return (
+            <Toss 
+                team1Name={setupData.team1Name}
+                team2Name={setupData.team2Name}
+                onTossComplete={handleTossResult}
+                onBack={handleBackToSetup}
+            />
+        );
+    }
+    
+    if (!matchState) {
+        return <MatchSetup onMatchStart={handleSetupComplete} onShowHistory={() => setView('history')} />;
+    }
+    
+    return (
         <>
           <main className="max-w-4xl mx-auto p-4 pb-56">
             <Scoreboard 
@@ -486,7 +524,12 @@ const App: React.FC = () => {
             </div>
           </footer>
         </>
-      )}
+    );
+  };
+  
+  return (
+    <div className="bg-[#0D1117] text-white font-sans min-h-screen relative">
+        {renderContent()}
     </div>
   );
 };
