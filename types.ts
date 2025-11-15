@@ -1,4 +1,5 @@
 
+
 export interface Player {
   id: string;
   name: string;
@@ -30,6 +31,8 @@ export interface OverEvent {
 }
 
 export interface MatchState {
+  id?: string;
+  completedAt?: string;
   team1: { name: string; players: Player[] };
   team2: { name: string; players: Player[] };
   totalOvers: number;

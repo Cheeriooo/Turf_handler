@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import type { MatchSetupData } from '../types';
-import { UsersIcon, PlusIcon, CloseIcon, BatIcon } from './icons';
+import { UsersIcon, PlusIcon, CloseIcon, BatIcon, HistoryIcon } from './icons';
 
 interface MatchSetupProps {
   onMatchStart: (data: MatchSetupData) => void;
+  onShowHistory: () => void;
 }
 
-const MatchSetup: React.FC<MatchSetupProps> = ({ onMatchStart }) => {
+const MatchSetup: React.FC<MatchSetupProps> = ({ onMatchStart, onShowHistory }) => {
   const [team1Name, setTeam1Name] = useState('Team A');
   const [team2Name, setTeam2Name] = useState('Team B');
   const [team1Players, setTeam1Players] = useState<string[]>(['Player 1', 'Player 2', 'Player 3']);
@@ -113,9 +114,16 @@ const MatchSetup: React.FC<MatchSetupProps> = ({ onMatchStart }) => {
   return (
     <div className="min-h-screen bg-[#0D1117] text-white p-4 font-sans">
       <div className="max-w-md mx-auto animate-slide-up-fade-in py-6">
-        <div className="text-center mb-8">
+        <div className="text-center mb-8 relative">
           <h1 className="text-3xl font-bold">Match Setup</h1>
           <p className="text-[#9CA3AF] mt-2">Set up your teams and overs to start the game.</p>
+          <button 
+            onClick={onShowHistory}
+            className="absolute top-0 right-0 p-2 text-gray-400 hover:text-white transition"
+            aria-label="View match history"
+          >
+            <HistoryIcon className="w-6 h-6" />
+          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">

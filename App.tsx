@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import type { MatchState, MatchSetupData, Player, BatsmanStats, BowlerStats, OverEvent } from './types';
 import MatchSetup from './components/MatchSetup';
+import MatchHistory from './components/MatchHistory';
 import Scoreboard from './components/Scoreboard';
 import PlayerCard from './components/PlayerCard';
 import ScoringControls from './components/ScoringControls';
@@ -13,29 +14,60 @@ type ScoringEvent =
   | { type: 'UNDO' };
 
 const App: React.FC = () => {
-  const [matchState, setMatchState] = useState<MatchState | null>(() => {
+  const [view, setView] = useState<'main' | 'history'>('main');
+  const [matchState, setMatchState] = useState<MatchState | null>(null);
+  const [scoreAnimationKey, setScoreAnimationKey] = useState(0);
+
+  useEffect(() => {
+    // Load in-progress game on startup
     try {
       const savedState = localStorage.getItem('cricketResolverState');
       if (savedState) {
         const parsedState = JSON.parse(savedState) as MatchState;
-        parsedState.lastEvent = null; // Don't persist undo state across reloads
-        return parsedState;
+        if (!parsedState.isMatchOver) { // Only load if not completed
+          parsedState.lastEvent = null; // Don't persist undo state
+          setMatchState(parsedState);
+        } else {
+          localStorage.removeItem('cricketResolverState');
+        }
       }
     } catch (error) {
       console.error("Could not load match state from local storage", error);
     }
-    return null;
-  });
-  
-  const [scoreAnimationKey, setScoreAnimationKey] = useState(0);
+  }, []);
 
   useEffect(() => {
-    if (matchState) {
-      localStorage.setItem('cricketResolverState', JSON.stringify(matchState));
-    } else {
+    // Save in-progress match state
+    if (matchState && !matchState.isMatchOver) {
+      const stateToSave = { ...matchState };
+      delete stateToSave.lastEvent;
+      localStorage.setItem('cricketResolverState', JSON.stringify(stateToSave));
+    } else if (!matchState) {
       localStorage.removeItem('cricketResolverState');
     }
   }, [matchState]);
+
+  useEffect(() => {
+    // Archive a completed match
+    if (matchState?.isMatchOver) {
+      const historyJSON = localStorage.getItem('cricketMatchHistory');
+      const history: MatchState[] = historyJSON ? JSON.parse(historyJSON) : [];
+      
+      const completedMatch = {
+        ...matchState,
+        id: matchState.id || new Date().toISOString(),
+        completedAt: new Date().toISOString(),
+      };
+
+      if (!history.some(m => m.id === completedMatch.id)) {
+        const newHistory = [completedMatch, ...history];
+        localStorage.setItem('cricketMatchHistory', JSON.stringify(newHistory));
+      }
+      
+      localStorage.removeItem('cricketResolverState');
+    }
+  }, [matchState?.isMatchOver]);
+
 
   const getPlayerById = useCallback((id: string | null): Player | undefined => {
       if (!id || !matchState) return undefined;
@@ -60,6 +92,7 @@ const App: React.FC = () => {
       }, {} as Record<string, BowlerStats>);
 
     setMatchState({
+      id: new Date().toISOString(),
       team1: { name: data.team1Name, players: team1Players },
       team2: { name: data.team2Name, players: team2Players },
       totalOvers: data.totalOvers,
@@ -94,6 +127,7 @@ const App: React.FC = () => {
     if (window.confirm(confirmMessage)) {
       localStorage.removeItem('cricketResolverState');
       setMatchState(null);
+      setView('main');
     }
   };
   
@@ -338,10 +372,14 @@ const App: React.FC = () => {
     return currentOver >= totalOvers || wickets >= maxWickets;
   }, [matchState]);
 
+  if (view === 'history') {
+    return <MatchHistory onBack={() => setView('main')} />;
+  }
+
   return (
     <div className="bg-[#0D1117] text-white font-sans min-h-screen relative">
       {!matchState ? (
-        <MatchSetup onMatchStart={handleMatchStart} />
+        <MatchSetup onMatchStart={handleMatchStart} onShowHistory={() => setView('history')} />
       ) : (
         <>
           <main className="max-w-4xl mx-auto p-4 pb-56">
