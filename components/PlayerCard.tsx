@@ -36,7 +36,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
                 value={id || ''} 
                 onChange={(e) => onChange(e.target.value)}
                 disabled={isMatchOver}
-                className="w-full bg-transparent text-white font-semibold focus:outline-none cursor-pointer text-sm appearance-none"
+                className="w-full bg-transparent text-white font-semibold focus:outline-none cursor-pointer text-sm appearance-none py-2"
              >
                 <option value="" className="bg-slate-900 text-gray-500">Select Player...</option>
                 {players.map(p => (
@@ -88,7 +88,7 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
                  <select 
                     value={activePlayerId || ''}
                     onChange={(e) => onPlayerSelect && onPlayerSelect(e.target.value)}
-                    className="w-full bg-slate-900 p-2 rounded border border-slate-700 text-white focus:border-amber-500 focus:outline-none"
+                    className="w-full bg-slate-900 p-3 rounded border border-slate-700 text-white focus:border-amber-500 focus:outline-none appearance-none"
                  >
                     <option value="">Choose...</option>
                     {players.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}

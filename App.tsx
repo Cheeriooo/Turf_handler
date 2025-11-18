@@ -373,13 +373,13 @@ const App: React.FC = () => {
   const isOverStarting = (matchState.currentBall === 0 && matchState.currentOver < matchState.totalOvers && !matchState.bowlerId) || false;
 
   return (
-    <div className="min-h-screen pb-24 md:pb-0">
+    <div className="min-h-screen pb-80 md:pb-0">
       
       {/* Header */}
       <header className="sticky top-0 z-40 glass-card border-b border-white/10 px-4 py-3 flex justify-between items-center">
         <div className="flex items-center gap-2">
            <TrophyIcon className="w-5 h-5 text-yellow-400" />
-           <h1 className="font-bold text-lg tracking-tight">CRICKET<span className="text-indigo-400">PRO</span></h1>
+           <h1 className="font-bold text-lg tracking-tight">FIGHT<span className="text-indigo-400">RESOLVER</span></h1>
         </div>
         <div className="flex items-center gap-2">
            {!matchState.isMatchOver && (
