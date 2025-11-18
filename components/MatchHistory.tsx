@@ -1,355 +1,153 @@
 import React, { useState, useEffect } from 'react';
-import type { MatchState, Player, BatsmanStats, BowlerStats } from '../types';
+import type { MatchState, Player } from '../types';
 import { HistoryIcon, DownloadIcon, ChevronDownIcon } from './icons';
-
-const InningsScorecard: React.FC<{
-  title: string;
-  players: Player[];
-  batsmanStats: Record<string, BatsmanStats>;
-  bowlerStats: Record<string, BowlerStats>;
-  teamScore: number;
-  teamWickets: number;
-}> = ({ title, players, batsmanStats, bowlerStats, teamScore, teamWickets }) => {
-  const bowlers = players.filter(p => bowlerStats[p.id] && bowlerStats[p.id].ballsDelivered > 0);
-
-  return (
-    <div className="space-y-6">
-      <h4 className="text-xl font-bold text-center text-gray-300">{title} - {teamScore}/{teamWickets}</h4>
-      {/* Batting Scorecard */}
-      <div>
-        <h5 className="font-semibold mb-2 text-[#3B82F6]">Batting</h5>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left">
-            <thead className="bg-[#0D1117] text-xs text-gray-400 uppercase">
-              <tr>
-                <th className="px-4 py-2">Batsman</th>
-                <th className="px-2 py-2 text-right">R</th>
-                <th className="px-2 py-2 text-right">B</th>
-                <th className="px-2 py-2 text-right">4s</th>
-                <th className="px-2 py-2 text-right">6s</th>
-                <th className="px-2 py-2 text-right">SR</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-700">
-              {players.map(player => {
-                const stats = batsmanStats[player.id];
-                if (!stats) return null;
-                return (
-                  <tr key={player.id}>
-                    <td className="px-4 py-2 font-medium truncate">{player.name} {!stats.isOut && stats.balls > 0 ? <span className="text-green-400">*</span> : ''}</td>
-                    <td className="px-2 py-2 text-right font-mono">{stats.runs}</td>
-                    <td className="px-2 py-2 text-right font-mono">{stats.balls}</td>
-                    <td className="px-2 py-2 text-right font-mono">{stats.bonus4}</td>
-                    <td className="px-2 py-2 text-right font-mono">{stats.bonus6}</td>
-                    <td className="px-2 py-2 text-right font-mono">{typeof stats.strikeRate === 'number' ? stats.strikeRate.toFixed(2) : '0.00'}</td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Bowling Scorecard */}
-      {bowlers.length > 0 && (
-        <div>
-          <h5 className="font-semibold mb-2 text-[#F59E0B]">Bowling</h5>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead className="bg-[#0D1117] text-xs text-gray-400 uppercase">
-                <tr>
-                  <th className="px-4 py-2">Bowler</th>
-                  <th className="px-2 py-2 text-right">O</th>
-                  <th className="px-2 py-2 text-right">M</th>
-                  <th className="px-2 py-2 text-right">R</th>
-                  <th className="px-2 py-2 text-right">W</th>
-                  <th className="px-2 py-2 text-right">Econ</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-700">
-                {bowlers.map(player => {
-                  const stats = bowlerStats[player.id];
-                  if (!stats) return null;
-                  const overs = Math.floor(stats.ballsDelivered / 6);
-                  const balls = stats.ballsDelivered % 6;
-                  return (
-                    <tr key={player.id}>
-                      <td className="px-4 py-2 font-medium truncate">{player.name}</td>
-                      <td className="px-2 py-2 text-right font-mono">{overs}.{balls}</td>
-                      <td className="px-2 py-2 text-right font-mono">{stats.maidenOvers}</td>
-                      <td className="px-2 py-2 text-right font-mono">{stats.runsConceded}</td>
-                      <td className="px-2 py-2 text-right font-mono">{stats.wickets}</td>
-                      <td className="px-2 py-2 text-right font-mono">{(typeof stats.economy === 'number' ? stats.economy : 0).toFixed(2)}</td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
+import InningsScorecard from './InningsScorecard';
 
 const MatchHistory: React.FC<{ onBack: () => void; }> = ({ onBack }) => {
   const [history, setHistory] = useState<MatchState[]>([]);
   const [expandedMatchId, setExpandedMatchId] = useState<string | null>(null);
-  const [isExporting, setIsExporting] = useState<string | null>(null);
 
   useEffect(() => {
     try {
         const historyJSON = localStorage.getItem('cricketMatchHistory');
         if (historyJSON) {
-          const parsedHistory = JSON.parse(historyJSON);
-          // Basic validation to prevent crash on malformed data
-          if (Array.isArray(parsedHistory)) {
-            setHistory(parsedHistory.filter(match => match && typeof match === 'object' && match.team1 && match.team2));
-          }
+          setHistory(JSON.parse(historyJSON));
         }
-    } catch(e) {
-        console.error("Failed to load match history:", e);
-        // If parsing fails, clear corrupted data
-        localStorage.removeItem('cricketMatchHistory');
-    }
+    } catch(e) { console.error(e); }
   }, []);
 
-  const handleClearHistory = () => {
-    if (window.confirm("Are you sure you want to clear all match history? This cannot be undone.")) {
-      localStorage.removeItem('cricketMatchHistory');
-      setHistory([]);
-    }
+  const toggleExpand = (id: string) => {
+    setExpandedMatchId(expandedMatchId === id ? null : id);
   };
 
-  const toggleDetails = (matchId: string) => {
-    setExpandedMatchId(prevId => (prevId === matchId ? null : matchId));
-  };
-  
-  const toCSVRow = (data: (string | number)[]) => {
-    return data.map(val => {
-      const str = String(val).replace(/"/g, '""');
-      return `"${str}"`;
-    }).join(',') + '\r\n';
-  };
-  
-  const generateCSVContent = (match: MatchState): string => {
-    let csvContent = '';
-  
-    // Match Summary
-    csvContent += toCSVRow([`Match: ${match.team1.name} vs ${match.team2.name}`]);
-    csvContent += toCSVRow([`Result: ${match.matchOverMessage}`]);
-    csvContent += '\r\n';
-  
-    const generateInningsCSV = (
-      teamName: string, 
-      battingPlayers: Player[], 
-      bowlingPlayers: Player[],
-      batsmanStats: Record<string, BatsmanStats>,
-      bowlerStats: Record<string, BowlerStats>
-    ) => {
-      let inningsContent = '';
-      // Batting
-      inningsContent += toCSVRow([`${teamName} Innings - Batting`]);
-      inningsContent += toCSVRow(['Batsman', 'Status', 'Runs', 'Balls', '4s', '6s', 'SR']);
-      battingPlayers.forEach(player => {
-        const stats = batsmanStats[player.id];
-        if (stats) {
-          const status = !stats.isOut && stats.balls > 0 ? 'Not Out' : (stats.balls > 0 || stats.isOut ? 'Out' : 'Did not bat');
-          inningsContent += toCSVRow([
-            player.name,
-            status,
-            stats.runs,
-            stats.balls,
-            stats.bonus4,
-            stats.bonus6,
-            (typeof stats.strikeRate === 'number' ? stats.strikeRate.toFixed(2) : '0.00')
-          ]);
+  const downloadCSV = (match: MatchState, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const headers = ['Player Name', 'Team', 'Runs', 'Balls', '4s', '6s', 'SR', 'Overs', 'Maidens', 'Runs Conceded', 'Wickets', 'Economy'];
+    let csvContent = "data:text/csv;charset=utf-8,";
+    
+    // Meta data
+    csvContent += `Match,${match.team1.name} vs ${match.team2.name}\n`;
+    csvContent += `Date,${new Date(match.completedAt || '').toLocaleDateString()}\n`;
+    csvContent += `Result,${match.matchOverMessage}\n\n`;
+    
+    csvContent += headers.join(",") + "\n";
+
+    const processPlayer = (p: Player, teamName: string) => {
+        const bat = match.batsmanStats[p.id];
+        const bowl = match.bowlerStats[p.id];
+        
+        // Only include if they did something
+        if ((bat && (bat.balls > 0 || bat.isOut)) || (bowl && bowl.ballsDelivered > 0)) {
+             const row = [
+                 `"${p.name}"`,
+                 `"${teamName}"`,
+                 bat ? bat.runs : 0,
+                 bat ? bat.balls : 0,
+                 bat ? bat.bonus4 : 0,
+                 bat ? bat.bonus6 : 0,
+                 bat ? (typeof bat.strikeRate === 'number' ? bat.strikeRate : 0) : 0,
+                 bowl ? (bowl.ballsDelivered / 6).toFixed(1) : 0,
+                 bowl ? bowl.maidenOvers : 0,
+                 bowl ? bowl.runsConceded : 0,
+                 bowl ? bowl.wickets : 0,
+                 bowl ? (typeof bowl.economy === 'number' ? bowl.economy : 0) : 0
+             ];
+             csvContent += row.join(",") + "\n";
         }
-      });
-      inningsContent += '\r\n';
-  
-      // Bowling
-      inningsContent += toCSVRow([`Bowling`]);
-      inningsContent += toCSVRow(['Bowler', 'Overs', 'Maidens', 'Runs', 'Wickets', 'Economy']);
-      bowlingPlayers.forEach(player => {
-        const stats = bowlerStats[player.id];
-        if (stats && stats.ballsDelivered > 0) {
-          const overs = `${Math.floor(stats.ballsDelivered / 6)}.${stats.ballsDelivered % 6}`;
-          inningsContent += toCSVRow([
-            player.name,
-            overs,
-            stats.maidenOvers,
-            stats.runsConceded,
-            stats.wickets,
-            (typeof stats.economy === 'number' ? stats.economy.toFixed(2) : '0.00')
-          ]);
-        }
-      });
-      return inningsContent;
     };
-  
-    const firstInningsTeamKey = match.currentInnings === 2 ? match.bowlingTeam : match.battingTeam;
-    const secondInningsTeamKey = match.currentInnings === 2 ? match.battingTeam : match.bowlingTeam;
-  
-    // First Innings
-    csvContent += generateInningsCSV(
-      match[firstInningsTeamKey].name,
-      match[firstInningsTeamKey].players,
-      match[secondInningsTeamKey].players,
-      match.batsmanStats,
-      match.bowlerStats
-    );
-  
-    // Second Innings
-    if (match.firstInningsResult) {
-      csvContent += '\r\n';
-      csvContent += generateInningsCSV(
-        match[secondInningsTeamKey].name,
-        match[secondInningsTeamKey].players,
-        match[firstInningsTeamKey].players,
-        match.batsmanStats,
-        match.bowlerStats
-      );
-    }
-  
-    return csvContent;
-  };
 
-  const downloadFile = (content: string, filename: string, mimeType: string) => {
-    const blob = new Blob([content], { type: mimeType });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
+    match.team1.players.forEach(p => processPlayer(p, match.team1.name));
+    match.team2.players.forEach(p => processPlayer(p, match.team2.name));
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `match_${match.id || 'report'}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  }
-
-  const handleExportMatch = (match: MatchState) => {
-    if (!match.id) return;
-    setIsExporting(match.id);
-    try {
-      const csvContent = generateCSVContent(match);
-      downloadFile(csvContent, `${match.team1.name}-vs-${match.team2.name}-summary.csv`, 'text/csv;charset=utf-8;');
-    } catch (error) {
-      console.error("Error generating CSV export:", error);
-      alert("Could not generate match export.");
-    } finally {
-      setIsExporting(null);
-    }
   };
 
   return (
-    <div className="min-h-screen bg-[#0D1117] text-white p-4 font-sans">
-      <div className="max-w-3xl mx-auto animate-slide-up-fade-in py-6">
-        <div className="flex justify-between items-center mb-8">
-            <h1 className="text-3xl font-bold flex items-center gap-3">
-                <HistoryIcon className="w-8 h-8"/> Match History
-            </h1>
-          <div>
-            <button onClick={onBack} className="mr-4 px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition">Back</button>
-            {history.length > 0 && (
-                <button onClick={handleClearHistory} className="px-4 py-2 bg-[#EF4444] text-white rounded-lg hover:bg-red-600 transition">Clear All</button>
-            )}
-          </div>
+    <div className="min-h-screen p-4 md:p-8 max-w-3xl mx-auto">
+        <div className="flex items-center gap-4 mb-8">
+            <button onClick={onBack} className="p-2 rounded-full hover:bg-white/10"><ChevronDownIcon className="w-6 h-6 rotate-90" /></button>
+            <h1 className="text-2xl font-bold">Match History</h1>
         </div>
 
         {history.length === 0 ? (
-          <div className="text-center py-20 bg-[#161B22] rounded-xl">
-            <h2 className="text-2xl font-semibold text-gray-400">No Completed Matches</h2>
-            <p className="text-gray-500 mt-2">Finish a match to see it here.</p>
-          </div>
+            <div className="glass-card p-12 rounded-2xl text-center text-gray-500">No matches recorded yet.</div>
         ) : (
-          <div className="space-y-4">
-            {history.map((match) => {
-              const isExpanded = expandedMatchId === match.id;
-              
-              const firstInningsTeamKey = match.currentInnings === 2 ? match.bowlingTeam : match.battingTeam;
-              const secondInningsTeamKey = match.currentInnings === 2 ? match.battingTeam : match.bowlingTeam;
-              
-              const firstInningsTeam = match[firstInningsTeamKey];
-              const secondInningsTeam = match[secondInningsTeamKey];
-              
-              const firstInningsScore = match.firstInningsResult ? match.firstInningsResult.score : match.score;
-              const firstInningsWickets = match.firstInningsResult ? match.firstInningsResult.wickets : match.wickets;
+            <div className="space-y-4">
+                {history.map((match, i) => {
+                    const isExpanded = expandedMatchId === match.id;
+                    // Determine innings teams based on final match state
+                    const innings2TeamKey = match.battingTeam;
+                    const innings1TeamKey = match.battingTeam === 'team1' ? 'team2' : 'team1';
+                    const innings1Team = match[innings1TeamKey];
+                    const innings2Team = match[innings2TeamKey];
 
-              return (
-              <div key={match.id} className="bg-[#161B22] rounded-xl shadow-lg border border-transparent hover:border-[#3B82F6]/50 transition-all duration-300">
-                <button onClick={() => toggleDetails(match.id!)} className="w-full text-left p-5 focus:outline-none">
-                    <div className="flex justify-between items-start">
-                    <div>
-                        <p className="font-bold text-lg">{match.team1.name} vs {match.team2.name}</p>
-                        <p className="text-sm text-gray-400">{match.completedAt ? new Date(match.completedAt).toLocaleString() : ''}</p>
-                    </div>
-                    <div className="text-right flex-shrink-0 ml-4 flex items-center gap-4">
-                        <p className="font-semibold text-green-400">{match.matchOverMessage}</p>
-                        <ChevronDownIcon className={`w-6 h-6 text-gray-400 transform transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-                    </div>
-                    </div>
-                    <div className="mt-4 border-t border-gray-700 pt-4 flex space-x-4 text-center">
-                        <div className="flex-1">
-                            <p className="text-xs text-gray-500 uppercase">{firstInningsTeam.name}</p>
-                            <p className="font-mono text-lg">{firstInningsScore}/{firstInningsWickets}</p>
-                        </div>
-                        {match.firstInningsResult && (
-                            <div className="flex-1">
-                                <p className="text-xs text-gray-500 uppercase">{secondInningsTeam.name}</p>
-                                <p className="font-mono text-lg">{match.score}/{match.wickets}</p>
+                    return (
+                        <div key={i} className="glass-card p-5 rounded-xl border-l-4 border-indigo-500 transition-all">
+                            <div 
+                                className="cursor-pointer"
+                                onClick={() => toggleExpand(match.id || '')}
+                            >
+                                <div className="flex justify-between items-start mb-2">
+                                    <div>
+                                        <h3 className="font-bold text-lg">{match.team1.name} <span className="text-gray-500 text-sm">vs</span> {match.team2.name}</h3>
+                                        <div className="text-xs text-gray-500">{new Date(match.completedAt!).toLocaleDateString()}</div>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <button 
+                                            onClick={(e) => downloadCSV(match, e)} 
+                                            className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition"
+                                            title="Export CSV"
+                                        >
+                                            <DownloadIcon className="w-5 h-5" />
+                                        </button>
+                                        <button 
+                                            className={`p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition ${isExpanded ? 'rotate-180' : ''}`}
+                                        >
+                                            <ChevronDownIcon className="w-5 h-5" />
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="text-emerald-400 font-bold text-sm uppercase tracking-wide mb-3">{match.matchOverMessage}</div>
+                                <div className="flex gap-4 text-sm font-mono text-gray-400">
+                                    <span>1st: {match.firstInningsResult?.score}/{match.firstInningsResult?.wickets}</span>
+                                    <span>2nd: {match.score}/{match.wickets}</span>
+                                </div>
                             </div>
-                        )}
-                    </div>
-                </button>
-                {isExpanded && (
-                  <div className="px-5 pb-5 pt-2 border-t border-gray-700/50 space-y-6">
-                    <InningsScorecard 
-                      title={`${firstInningsTeam.name} Innings`}
-                      players={firstInningsTeam.players}
-                      batsmanStats={match.batsmanStats}
-                      bowlerStats={match.bowlerStats}
-                      teamScore={firstInningsScore}
-                      teamWickets={firstInningsWickets}
-                    />
-                    {match.firstInningsResult && (
-                      <InningsScorecard 
-                        title={`${secondInningsTeam.name} Innings`}
-                        players={secondInningsTeam.players}
-                        batsmanStats={match.batsmanStats}
-                        bowlerStats={match.bowlerStats}
-                        teamScore={match.score}
-                        teamWickets={match.wickets}
-                      />
-                    )}
-                    <div className="pt-4 border-t border-gray-700/50">
-                      <button 
-                        onClick={() => handleExportMatch(match)} 
-                        disabled={isExporting === match.id}
-                        className="w-full flex items-center justify-center gap-2 py-2 px-4 bg-[#3B82F6] text-white font-semibold rounded-lg hover:bg-blue-500 transition disabled:bg-gray-600 disabled:cursor-wait"
-                      >
-                        {isExporting === match.id ? (
-                            <>
-                            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            Exporting...
-                            </>
-                        ) : (
-                            <>
-                            <DownloadIcon className="w-5 h-5"/> Export as CSV
-                            </>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )})}
-          </div>
+
+                            {isExpanded && (
+                                <div className="mt-6 pt-6 border-t border-white/10 space-y-8 animate-slide-up">
+                                    {/* Innings 1 Report */}
+                                    <InningsScorecard 
+                                        title={`${innings1Team.name} Innings`}
+                                        players={innings1Team.players}
+                                        batsmanStats={match.batsmanStats}
+                                        bowlerStats={match.bowlerStats}
+                                        teamScore={match.firstInningsResult?.score || 0}
+                                        teamWickets={match.firstInningsResult?.wickets || 0}
+                                    />
+
+                                    {/* Innings 2 Report */}
+                                    <InningsScorecard 
+                                        title={`${innings2Team.name} Innings`}
+                                        players={innings2Team.players}
+                                        batsmanStats={match.batsmanStats}
+                                        bowlerStats={match.bowlerStats}
+                                        teamScore={match.score}
+                                        teamWickets={match.wickets}
+                                    />
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
         )}
-      </div>
     </div>
   );
 };

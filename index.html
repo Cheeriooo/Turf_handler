@@ -3,40 +3,72 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Cricket Scorer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Cricket Scorer Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
-      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
-      
-      body {
-        font-family: 'Inter', sans-serif;
-        background-color: #0D1117;
+      :root {
+        --bg-primary: #020617; /* Slate 950 */
+        --bg-secondary: #0f172a; /* Slate 900 */
+        --accent-primary: #6366f1; /* Indigo 500 */
+        --accent-success: #10b981; /* Emerald 500 */
+        --accent-danger: #ef4444; /* Red 500 */
+        --text-primary: #f8fafc;
+        --text-secondary: #94a3b8;
       }
 
-      /* Initial setup animation */
-      @keyframes slideUpFadeIn {
+      body {
+        font-family: 'Inter', sans-serif;
+        background-color: var(--bg-primary);
+        background-image: 
+          radial-gradient(circle at 50% 0%, #1e293b 0%, transparent 70%),
+          radial-gradient(circle at 80% 80%, #1e1b4b 0%, transparent 50%);
+        color: var(--text-primary);
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+
+      .font-mono {
+        font-family: 'JetBrains Mono', monospace;
+      }
+
+      /* Glassmorphism Cards */
+      .glass-card {
+        background: rgba(15, 23, 42, 0.6);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+      }
+
+      .glass-panel {
+        background: rgba(30, 41, 59, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+      }
+
+      /* Animations */
+      @keyframes slideUp {
         from { opacity: 0; transform: translateY(20px); }
         to { opacity: 1; transform: translateY(0); }
       }
-      .animate-slide-up-fade-in {
-        animation: slideUpFadeIn 0.7s ease-out forwards;
+      .animate-slide-up {
+        animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
       }
 
-      /* Scoreboard flash animation with green color */
-      @keyframes score-flash {
-        0% { transform: scale(1); opacity: 1; color: inherit; }
-        50% { transform: scale(1.15); opacity: 0.8; color: #4ade80; }
-        100% { transform: scale(1); opacity: 1; color: inherit; }
+      @keyframes pulse-glow {
+        0%, 100% { box-shadow: 0 0 10px rgba(99, 102, 241, 0); }
+        50% { box-shadow: 0 0 20px rgba(99, 102, 241, 0.3); }
       }
-      .animate-score-flash {
-        animation: score-flash 0.6s ease-in-out;
+      
+      .animate-pulse-glow {
+        animation: pulse-glow 2s infinite;
       }
 
-      /* 3D Coin Flip Animation */
+      /* Coin Flip 3D */
       .coin-container {
-        width: 128px;
-        height: 128px;
+        width: 140px;
+        height: 140px;
         perspective: 1000px;
         margin: 0 auto;
       }
@@ -45,52 +77,37 @@
         height: 100%;
         position: relative;
         transform-style: preserve-3d;
-        transition: transform 1s cubic-bezier(0.6, -0.28, 0.74, 0.05);
+        transition: transform 1s ease-in-out;
       }
       .coin.flipping {
-        animation: full-flip 2.5s cubic-bezier(0.45, 0.05, 0.55, 0.95) forwards;
+        animation: flipCoin 2s ease-out forwards;
       }
       .coin-face {
         position: absolute;
         width: 100%;
         height: 100%;
-        -webkit-backface-visibility: hidden; /* Safari */
         backface-visibility: hidden;
+        border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        border-radius: 50%;
-        background: #FBBF24; /* amber-400 */
-        border: 4px solid #F59E0B; /* amber-500 */
-        box-shadow: 0 0 20px rgba(251, 191, 36, 0.5), inset 0 0 10px rgba(0,0,0,0.2);
-      }
-      .coin-front {
-        /* No transform needed */
+        background: linear-gradient(135deg, #fbbf24, #d97706);
+        border: 4px solid #f59e0b;
+        box-shadow: 0 0 25px rgba(251, 191, 36, 0.4);
       }
       .coin-back {
         transform: rotateY(180deg);
+        background: linear-gradient(135deg, #d97706, #fbbf24);
       }
 
-      @keyframes full-flip {
-        0% { transform: rotateY(0deg) rotateX(10deg); }
-        100% { transform: rotateY(3780deg) rotateX(10deg); } /* Ends on a 180deg flip */
+      @keyframes flipCoin {
+        0% { transform: rotateY(0) rotateX(0); }
+        100% { transform: rotateY(1800deg) rotateX(10deg); }
       }
+      
+      .coin.heads { transform: rotateY(0); }
+      .coin.tails { transform: rotateY(180deg); }
 
-      /* Final states for coin */
-      .coin.heads {
-        transform: rotateY(0deg);
-      }
-      .coin.tails {
-        transform: rotateY(180deg);
-      }
-
-      @keyframes result-fade-in {
-        from { opacity: 0; transform: scale(0.8); }
-        to { opacity: 1; transform: scale(1); }
-      }
-      .animate-result-fade-in {
-        animation: result-fade-in 0.5s ease-out forwards;
-      }
     </style>
 <script type="importmap">
 {

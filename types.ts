@@ -61,6 +61,12 @@ export interface MatchState {
   isMatchOver: boolean;
   matchOverMessage: string;
   
+  // FIX: Add optional matchSummary property for post-match stats.
+  matchSummary?: {
+    topScorer: { name: string; runs: number } | null;
+    bestBowler: { name: string; wickets: number; runs: number } | null;
+  } | null;
+  
   nextBatsmanIndex: number;
 
   currentInnings: 1 | 2;

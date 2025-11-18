@@ -7,110 +7,112 @@ interface PlayerCardProps {
   players: Player[];
   stats: Record<string, BatsmanStats | BowlerStats>;
   isMatchOver?: boolean;
-
-  // Batting specific
   isBattingCard?: boolean;
   strikerId?: string | null;
   nonStrikerId?: string | null;
   onStrikerChange?: (id: string) => void;
   onNonStrikerChange?: (id: string) => void;
-
-  // Bowling specific
   activePlayerId?: string | null;
   onPlayerSelect?: (id: string) => void;
   isOverStarting?: boolean;
 }
 
 const PlayerCard: React.FC<PlayerCardProps> = ({
-  title,
-  players,
-  stats,
-  isMatchOver,
-  isBattingCard,
-  strikerId,
-  nonStrikerId,
-  onStrikerChange,
-  onNonStrikerChange,
-  activePlayerId,
-  onPlayerSelect,
-  isOverStarting,
+  title, players, stats, isMatchOver, isBattingCard,
+  strikerId, nonStrikerId, onStrikerChange, onNonStrikerChange,
+  activePlayerId, onPlayerSelect, isOverStarting,
 }) => {
-  const renderBatsmanSelector = (
-    label: string,
-    selectedId: string | null,
-    onChange: ((id: string) => void) | undefined,
-    otherBatsmanId: string | null
-  ) => {
-    if (!onChange) return null;
-    const s = selectedId ? (stats[selectedId] as BatsmanStats) : null;
-    const selectedPlayer = players.find(p => p.id === selectedId);
-    return (
-      <div>
-        <div className="flex justify-between items-center mb-1">
-          <label className="font-semibold text-[#9CA3AF]">{label}</label>
-          {s && <span className="font-mono text-sm whitespace-nowrap">{s.runs}<span className="text-gray-500">({s.balls})</span></span>}
-        </div>
-        <select
-          value={selectedId || ''}
-          onChange={(e) => onChange(e.target.value)}
-          disabled={isMatchOver}
-          className="w-full p-3 bg-[#0D1117] border border-gray-700 rounded-lg focus:ring-2 focus:ring-[#3B82F6] outline-none transition disabled:opacity-50 text-white"
-          aria-label={`Select ${label}`}
-        >
-          <option value="" disabled>{selectedPlayer ? selectedPlayer.name : 'Select...'}</option>
-          {players.map(p => (
-            <option key={p.id} value={p.id} disabled={p.id === otherBatsmanId}>
-              {p.name}
-            </option>
-          ))}
-        </select>
-      </div>
-    );
-  };
 
-  const renderBowler = (player: Player) => {
-    const s = stats[player.id] as BowlerStats;
-    const overs = Math.floor(s.ballsDelivered / 6);
-    const balls = s.ballsDelivered % 6;
-    return (
-      <div key={player.id} className="flex justify-between items-center bg-[#0D1117] p-3 rounded-lg">
-        <span className="font-semibold truncate">{player.name}</span>
-        <span className="font-mono text-sm">{overs}.{balls}-{s.maidenOvers}-{s.runsConceded}-{s.wickets}</span>
-      </div>
-    );
+  const PlayerRow = ({ label, id, onChange, disabledId, isActive }: any) => {
+     const s = id ? (stats[id] as BatsmanStats) : null;
+     return (
+       <div className={`p-3 rounded-lg border transition-all ${isActive ? 'bg-indigo-500/10 border-indigo-500/50' : 'bg-slate-800/50 border-transparent'}`}>
+          <div className="flex justify-between text-xs text-gray-400 mb-1 uppercase tracking-wider font-semibold">
+             <span>{label}</span>
+             {s && <span className="font-mono text-white">{s.runs} <span className="text-gray-500">({s.balls})</span></span>}
+          </div>
+          {onChange ? (
+             <select 
+                value={id || ''} 
+                onChange={(e) => onChange(e.target.value)}
+                disabled={isMatchOver}
+                className="w-full bg-transparent text-white font-semibold focus:outline-none cursor-pointer text-sm appearance-none"
+             >
+                <option value="" className="bg-slate-900 text-gray-500">Select Player...</option>
+                {players.map(p => (
+                    <option key={p.id} value={p.id} disabled={p.id === disabledId} className="bg-slate-900">
+                        {p.name}
+                    </option>
+                ))}
+             </select>
+          ) : (
+             <div className="font-semibold text-sm text-gray-500">{id ? players.find(p=>p.id===id)?.name : 'None'}</div>
+          )}
+       </div>
+     )
   }
 
-  const activePlayer = players.find(p => p.id === activePlayerId);
+  // Check if we should show the Bowler Selection dropdown
+  // Show it if explicitly requested (isOverStarting) OR if there is no active bowler currently set.
+  const showBowlerSelect = onPlayerSelect && (isOverStarting || !activePlayerId);
 
   return (
-    <div className="bg-[#161B22] rounded-xl p-4 h-full shadow-md">
-      <h3 className="text-xl font-bold mb-4 flex items-center gap-2 text-[#3B82F6]">
-        {isBattingCard ? <BatIcon className="w-6 h-6" /> : <BallIcon className="w-6 h-6" />} {title}
+    <div className="glass-card rounded-xl p-4">
+      <h3 className="text-sm font-bold text-gray-400 mb-3 flex items-center gap-2 uppercase tracking-wider">
+        {isBattingCard ? <BatIcon className="w-4 h-4" /> : <BallIcon className="w-4 h-4" />} {title}
       </h3>
       
       {isBattingCard ? (
-        <div className="space-y-4">
-          {renderBatsmanSelector('Striker', strikerId, onStrikerChange, nonStrikerId)}
-          {renderBatsmanSelector('Non-Striker', nonStrikerId, onNonStrikerChange, strikerId)}
+        <div className="flex flex-col gap-3">
+          <PlayerRow 
+             label="Striker" 
+             id={strikerId} 
+             onChange={onStrikerChange} 
+             disabledId={nonStrikerId} 
+             isActive={true} 
+          />
+          {/* LMS: Hide non-striker row if playing alone (nonStrikerId is null but striker exists) */}
+          <PlayerRow 
+             label="Non-Striker" 
+             id={nonStrikerId} 
+             onChange={onNonStrikerChange} 
+             disabledId={strikerId} 
+             isActive={false} 
+          />
         </div>
-      ) : onPlayerSelect ? (
+      ) : (
         <div className="space-y-3">
-          {isOverStarting && activePlayerId ? (
-             <select 
-               value={activePlayerId} 
-               onChange={(e) => onPlayerSelect(e.target.value)}
-               className="w-full p-3 bg-[#0D1117] border border-gray-700 rounded-lg focus:ring-2 focus:ring-[#3B82F6] outline-none transition text-white"
-             >
-              {players.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-             </select>
-          ) : activePlayer ? renderBowler(activePlayer) : <p className="text-gray-400">Select bowler</p>}
-          {activePlayer && (
-            <div className="text-right text-sm text-[#9CA3AF] pt-2">
-              Eco: <span className="font-mono">{(stats[activePlayerId] as BowlerStats).economy}</span>
-            </div>
-          )}
+           {showBowlerSelect ? (
+              <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
+                 <label className="block text-amber-400 text-xs font-bold uppercase mb-2">Select Next Bowler</label>
+                 <select 
+                    value={activePlayerId || ''}
+                    onChange={(e) => onPlayerSelect && onPlayerSelect(e.target.value)}
+                    className="w-full bg-slate-900 p-2 rounded border border-slate-700 text-white focus:border-amber-500 focus:outline-none"
+                 >
+                    <option value="">Choose...</option>
+                    {players.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                 </select>
+              </div>
+           ) : activePlayerId ? (
+              <div className="flex justify-between items-center p-3 bg-slate-800/50 rounded-lg border border-white/5">
+                 <div>
+                    <div className="text-xs text-gray-500 uppercase">Bowling</div>
+                    <div className="font-bold">{players.find(p=>p.id === activePlayerId)?.name}</div>
+                 </div>
+                 <div className="text-right font-mono text-sm">
+                    {(stats[activePlayerId] as BowlerStats).wickets} <span className="text-gray-500">for</span> {(stats[activePlayerId] as BowlerStats).runsConceded}
+                    <div className="text-xs text-gray-500">
+                        {(stats[activePlayerId] as BowlerStats).ballsDelivered % 6 === 0 && (stats[activePlayerId] as BowlerStats).ballsDelivered > 0
+                            ? `${(stats[activePlayerId] as BowlerStats).ballsDelivered / 6}.0`
+                            : `${Math.floor((stats[activePlayerId] as BowlerStats).ballsDelivered / 6)}.${(stats[activePlayerId] as BowlerStats).ballsDelivered % 6}`
+                        } overs
+                    </div>
+                 </div>
+              </div>
+           ) : <div className="text-gray-500 text-sm italic">No active bowler</div>}
         </div>
-      ) : null}
+      )}
     </div>
   );
 };

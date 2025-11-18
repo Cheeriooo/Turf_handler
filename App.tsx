@@ -6,7 +6,8 @@ import Toss from './components/Toss';
 import Scoreboard from './components/Scoreboard';
 import PlayerCard from './components/PlayerCard';
 import ScoringControls from './components/ScoringControls';
-import { UndoIcon } from './components/icons';
+import MatchOverModal from './components/MatchOverModal';
+import { UndoIcon, TrophyIcon } from './components/icons';
 
 type ScoringEvent = 
   | { type: 'RUNS', runs: number }
@@ -20,26 +21,25 @@ const App: React.FC = () => {
   const [setupData, setSetupData] = useState<MatchSetupData | null>(null);
   const [scoreAnimationKey, setScoreAnimationKey] = useState(0);
 
+  // --- Persistence Logic ---
   useEffect(() => {
-    // Load in-progress game on startup
     try {
       const savedState = localStorage.getItem('cricketResolverState');
       if (savedState) {
         const parsedState = JSON.parse(savedState) as MatchState;
-        if (!parsedState.isMatchOver) { // Only load if not completed
-          parsedState.lastEvent = null; // Don't persist undo state
+        if (!parsedState.isMatchOver) {
+          parsedState.lastEvent = null; // Don't persist undo history heavily
           setMatchState(parsedState);
         } else {
           localStorage.removeItem('cricketResolverState');
         }
       }
     } catch (error) {
-      console.error("Could not load match state from local storage", error);
+      console.error("Could not load match state", error);
     }
   }, []);
 
   useEffect(() => {
-    // Save in-progress match state
     if (matchState && !matchState.isMatchOver) {
       const stateToSave = { ...matchState };
       delete stateToSave.lastEvent;
@@ -50,7 +50,6 @@ const App: React.FC = () => {
   }, [matchState]);
 
   useEffect(() => {
-    // Archive a completed match
     if (matchState?.isMatchOver) {
       const historyJSON = localStorage.getItem('cricketMatchHistory');
       const history: MatchState[] = historyJSON ? JSON.parse(historyJSON) : [];
@@ -65,16 +64,11 @@ const App: React.FC = () => {
         const newHistory = [completedMatch, ...history];
         localStorage.setItem('cricketMatchHistory', JSON.stringify(newHistory));
       }
-      
       localStorage.removeItem('cricketResolverState');
     }
   }, [matchState?.isMatchOver]);
 
-
-  const getPlayerById = useCallback((id: string | null): Player | undefined => {
-      if (!id || !matchState) return undefined;
-      return [...matchState.team1.players, ...matchState.team2.players].find(p => p.id === id);
-  }, [matchState]);
+  // --- Handlers ---
 
   const handleSetupComplete = (data: MatchSetupData) => {
     setSetupData(data);
@@ -82,31 +76,19 @@ const App: React.FC = () => {
 
   const handleTossResult = (winnerTeamKey: 'team1' | 'team2', decision: 'bat' | 'bowl') => {
     if (!setupData) return;
-
-    const battingTeamKey =
-      decision === 'bat'
-        ? winnerTeamKey
-        : winnerTeamKey === 'team1' ? 'team2' : 'team1';
-
-    const bowlingTeamKey =
-      decision === 'bowl'
-        ? winnerTeamKey
-        : winnerTeamKey === 'team1' ? 'team2' : 'team1';
+    const battingTeamKey = decision === 'bat' ? winnerTeamKey : (winnerTeamKey === 'team1' ? 'team2' : 'team1');
+    const bowlingTeamKey = decision === 'bowl' ? winnerTeamKey : (winnerTeamKey === 'team1' ? 'team2' : 'team1');
 
     const team1Players = setupData.team1Players.map((name, i) => ({ id: `t1p${i}`, name }));
     const team2Players = setupData.team2Players.map((name, i) => ({ id: `t2p${i}`, name }));
 
-    const initialBatsmanStats: Record<string, BatsmanStats> =
-      [...team1Players, ...team2Players].reduce((acc, player) => {
-        acc[player.id] = { runs: 0, balls: 0, bonus4: 0, bonus6: 0, isOut: false, strikeRate: 0 };
-        return acc;
-      }, {} as Record<string, BatsmanStats>);
-
-    const initialBowlerStats: Record<string, BowlerStats> =
-      [...team1Players, ...team2Players].reduce((acc, player) => {
-        acc[player.id] = { overs: 0, ballsDelivered: 0, runsConceded: 0, wickets: 0, maidenOvers: 0, economy: 0 };
-        return acc;
-      }, {} as Record<string, BowlerStats>);
+    const allPlayers = [...team1Players, ...team2Players];
+    const initialBatsmanStats: Record<string, BatsmanStats> = allPlayers.reduce((acc, p) => ({ 
+      ...acc, [p.id]: { runs: 0, balls: 0, bonus4: 0, bonus6: 0, isOut: false, strikeRate: 0 } 
+    }), {});
+    const initialBowlerStats: Record<string, BowlerStats> = allPlayers.reduce((acc, p) => ({ 
+      ...acc, [p.id]: { overs: 0, ballsDelivered: 0, runsConceded: 0, wickets: 0, maidenOvers: 0, economy: 0 } 
+    }), {});
 
     const battingTeamPlayers = battingTeamKey === 'team1' ? team1Players : team2Players;
     const bowlingTeamPlayers = bowlingTeamKey === 'team1' ? team1Players : team2Players;
@@ -139,17 +121,9 @@ const App: React.FC = () => {
     });
     setSetupData(null);
   };
-  
-  const handleBackToSetup = () => {
-    setSetupData(null);
-  };
 
   const handleResetMatch = () => {
-    const confirmMessage = matchState?.isMatchOver
-      ? 'Do you want to start a new match? The current match data will be cleared.'
-      : 'Are you sure you want to reset the entire match? This action cannot be undone.';
-
-    if (window.confirm(confirmMessage)) {
+    if (window.confirm("Start a new match? Current progress will be discarded.")) {
       localStorage.removeItem('cricketResolverState');
       setMatchState(null);
       setSetupData(null);
@@ -159,26 +133,20 @@ const App: React.FC = () => {
   
   const startSecondInnings = () => {
     if (!matchState) return;
-
     setMatchState(prevState => {
       if (!prevState) return null;
-      
       const newBattingTeamKey = prevState.bowlingTeam;
       const newBowlingTeamKey = prevState.battingTeam;
       const newBattingTeamPlayers = prevState[newBattingTeamKey].players;
-      const newBowlingTeamPlayers = prevState[newBowlingTeamKey].players;
 
       return {
         ...prevState,
-        firstInningsResult: {
-          score: prevState.score,
-          wickets: prevState.wickets,
-        },
+        firstInningsResult: { score: prevState.score, wickets: prevState.wickets },
         battingTeam: newBattingTeamKey,
         bowlingTeam: newBowlingTeamKey,
-        strikerId: newBattingTeamPlayers.length > 0 ? newBattingTeamPlayers[0].id : null,
-        nonStrikerId: newBattingTeamPlayers.length > 1 ? newBattingTeamPlayers[1].id : null,
-        bowlerId: newBowlingTeamPlayers.length > 0 ? newBowlingTeamPlayers[0].id : null,
+        strikerId: newBattingTeamPlayers[0]?.id || null,
+        nonStrikerId: newBattingTeamPlayers[1]?.id || null,
+        bowlerId: null,
         score: 0,
         wickets: 0,
         currentOver: 0,
@@ -189,347 +157,320 @@ const App: React.FC = () => {
         matchOverMessage: '',
         nextBatsmanIndex: 2,
         currentInnings: 2,
-        lastEvent: null, // Clear undo state
+        lastEvent: null,
       };
     });
   };
 
-  const handleBowlerChange = (newBowlerId: string) => {
-    if (!matchState || matchState.isMatchOver || matchState.bowlerId === newBowlerId) return;
-
-    const saveStateForUndo = (state: MatchState) => ({...state, lastEvent: JSON.parse(JSON.stringify(state)) });
-
+  const handlePlayerChange = (type: 'bowler' | 'striker' | 'nonStriker', newId: string) => {
+    if (!matchState || matchState.isMatchOver) return;
     setMatchState(prevState => {
       if (!prevState) return null;
+      const saveStateForUndo = (state: MatchState) => ({...state, lastEvent: JSON.parse(JSON.stringify(state)) });
       let newState = saveStateForUndo(prevState);
-      newState.bowlerId = newBowlerId;
+
+      // Handle "Choose..." selection (empty string) as null
+      const idToSet = newId === '' ? null : newId;
+
+      if (type === 'bowler') newState.bowlerId = idToSet;
+      if (type === 'striker') {
+        if (idToSet && idToSet === newState.nonStrikerId) newState.nonStrikerId = newState.strikerId;
+        newState.strikerId = idToSet;
+      }
+      if (type === 'nonStriker') {
+        if (idToSet && idToSet === newState.strikerId) newState.strikerId = newState.nonStrikerId;
+        newState.nonStrikerId = idToSet;
+      }
       return newState;
     });
-  };
-
-  const handleStrikerChange = (newStrikerId: string) => {
-    if (!matchState || !newStrikerId) return;
-    const saveStateForUndo = (state: MatchState) => ({...state, lastEvent: JSON.parse(JSON.stringify(state)) });
-    setMatchState(prevState => {
-        if (!prevState || prevState.isMatchOver || prevState.strikerId === newStrikerId) return prevState;
-
-        let newState = saveStateForUndo(prevState);
-        if (newStrikerId === newState.nonStrikerId) {
-            // Swap if selecting the non-striker
-            newState.nonStrikerId = newState.strikerId;
-        }
-        newState.strikerId = newStrikerId;
-        return newState;
-    });
-  };
-
-  const handleNonStrikerChange = (newNonStrikerId: string) => {
-      if (!matchState || !newNonStrikerId) return;
-      const saveStateForUndo = (state: MatchState) => ({...state, lastEvent: JSON.parse(JSON.stringify(state)) });
-      setMatchState(prevState => {
-          if (!prevState || prevState.isMatchOver || prevState.nonStrikerId === newNonStrikerId) return prevState;
-          
-          let newState = saveStateForUndo(prevState);
-          if (newNonStrikerId === newState.strikerId) {
-              // Swap if selecting the striker
-              newState.strikerId = newState.nonStrikerId;
-          }
-          newState.nonStrikerId = newNonStrikerId;
-          return newState;
-      });
   };
 
   const handleScore = (event: ScoringEvent) => {
     if (!matchState || (matchState.isMatchOver && event.type !== 'UNDO')) return;
     
-    if (event.type !== 'UNDO') {
-        setScoreAnimationKey(prev => prev + 1);
-    }
-
-    const saveStateForUndo = (state: MatchState) => ({...state, lastEvent: JSON.parse(JSON.stringify(state)) });
-
+    if (event.type === 'RUNS') setScoreAnimationKey(k => k + 1);
+    
     setMatchState(prevState => {
       if (!prevState) return null;
+      if (event.type === 'UNDO') return prevState.lastEvent;
 
-      if(event.type === 'UNDO') {
-        return prevState.lastEvent;
+      // Deep clone for undo history
+      const saveStateForUndo = (state: MatchState) => ({...state, lastEvent: JSON.parse(JSON.stringify(state)) });
+      let newState = saveStateForUndo(prevState);
+
+      const { strikerId, nonStrikerId, bowlerId, battingTeam, nextBatsmanIndex } = newState;
+      
+      // Validation: need bowler and striker to proceed with scoring
+      if (!strikerId || !bowlerId) {
+        return prevState;
       }
 
-      let newState = saveStateForUndo(prevState);
-      const { strikerId, nonStrikerId, bowlerId, battingTeam, nextBatsmanIndex } = newState;
-      const maxWickets = newState[battingTeam].players.length - 1;
-
-      if (!strikerId || !bowlerId) return prevState;
-      
       let eventRecord: OverEvent = { runs: 0, isExtra: false, isWicket: false, display: '' };
-      let legalBall = true;
-      let runsInThisBall = 0;
-      let rotateStrike = false;
+      let legalBall = true, runsInThisBall = 0, rotateStrike = false;
+      
+      // LAST MAN STANDING LOGIC: Max Wickets = Total Players
+      const maxWickets = newState[battingTeam].players.length;
+
+      // Ensure stats objects exist (deep clone safety)
+      newState.batsmanStats = { ...newState.batsmanStats };
+      newState.bowlerStats = { ...newState.bowlerStats };
+      newState.batsmanStats[strikerId] = { ...newState.batsmanStats[strikerId] };
+      newState.bowlerStats[bowlerId] = { ...newState.bowlerStats[bowlerId] };
 
       switch(event.type) {
-        case 'RUNS': {
+        case 'RUNS':
           runsInThisBall = event.runs;
-          eventRecord.runs = event.runs;
-          eventRecord.display = event.runs.toString();
+          eventRecord = { ...eventRecord, runs: event.runs, display: event.runs.toString() };
           newState.score += event.runs;
-
           newState.batsmanStats[strikerId].runs += event.runs;
           if (event.runs === 4) newState.batsmanStats[strikerId].bonus4 += 1;
           if (event.runs === 6) newState.batsmanStats[strikerId].bonus6 += 1;
-          
           rotateStrike = event.runs % 2 !== 0;
           break;
-        }
-
-        case 'EXTRA': {
+        case 'EXTRA':
           legalBall = false;
-          eventRecord.isExtra = true;
-          runsInThisBall = 1; // Assuming 1 run for wide/no ball
+          runsInThisBall = 1;
           newState.score += 1;
-          eventRecord.runs = 1;
-
-          if (event.extraType === 'Wide') {
-            eventRecord.display = 'Wd';
-          } else { // No Ball
-            eventRecord.display = 'Nb';
-          }
+          eventRecord = { ...eventRecord, isExtra: true, runs: 1, display: event.extraType === 'Wide' ? 'Wd' : 'Nb' };
           break;
-        }
-        
-        case 'OUT': {
-          eventRecord.isWicket = true;
-          eventRecord.display = 'W';
+        case 'OUT':
+          eventRecord = { ...eventRecord, isWicket: true, display: 'W' };
           newState.wickets += 1;
-          
           newState.batsmanStats[strikerId].isOut = true;
           newState.bowlerStats[bowlerId].wickets += 1;
-          
+
+          // -- LAST MAN STANDING LOGIC --
           if (newState.wickets < maxWickets) {
-            const battingTeamPlayers = newState[newState.battingTeam].players;
-            if (nextBatsmanIndex < battingTeamPlayers.length) {
-              const newBatsmanId = battingTeamPlayers[nextBatsmanIndex].id;
+            const newBatsmanId = newState[battingTeam].players[nextBatsmanIndex]?.id;
+            if (newBatsmanId) {
+              // Standard case: new batsman comes to crease
               newState.strikerId = newBatsmanId;
               newState.nextBatsmanIndex += 1;
             } else {
-              newState.strikerId = null;
+              // No new batsman available. 
+              // If there is a non-striker, they become the striker and play alone (LMS).
+              // The current striker is out, so the spot becomes empty initially.
+              if (newState.nonStrikerId) {
+                newState.strikerId = newState.nonStrikerId;
+                newState.nonStrikerId = null; // Empty non-striker end
+              }
+              // If no non-striker, game proceeds to check All Out condition below
             }
           }
           break;
-        }
       }
 
       // Update stats
-      if (legalBall && !newState.batsmanStats[strikerId].isOut) {
+      if (legalBall) {
         newState.batsmanStats[strikerId].balls += 1;
         const { runs, balls } = newState.batsmanStats[strikerId];
         newState.batsmanStats[strikerId].strikeRate = balls > 0 ? parseFloat(((runs / balls) * 100).toFixed(2)) : 0;
-      }
-      
-      newState.bowlerStats[bowlerId].runsConceded += runsInThisBall;
-      
-      newState.currentOverHistory.push(eventRecord);
-      
-      if (legalBall) {
         newState.currentBall += 1;
         newState.bowlerStats[bowlerId].ballsDelivered += 1;
       }
       
+      newState.bowlerStats[bowlerId].runsConceded += runsInThisBall;
       const bowlerBalls = newState.bowlerStats[bowlerId].ballsDelivered;
       newState.bowlerStats[bowlerId].economy = bowlerBalls > 0 ? parseFloat(((newState.bowlerStats[bowlerId].runsConceded / bowlerBalls) * 6).toFixed(2)) : 0;
+      
+      newState.currentOverHistory.push(eventRecord);
 
-      const isOverEnd = newState.currentBall === 6;
-
-      if (isOverEnd) {
-        rotateStrike = !rotateStrike;
-        
-        newState.allOversHistory.push([...newState.currentOverHistory]);
-
-        const isMaiden = newState.currentOverHistory.every(e => e.runs === 0 && !e.isExtra) && newState.currentOverHistory.length > 0;
-        if (isMaiden) {
-          newState.bowlerStats[bowlerId].maidenOvers += 1;
+      // Over completion logic
+      if (newState.currentBall === 6) {
+        // Only rotate strike if there is a partner
+        if (newState.nonStrikerId) {
+          // If run was odd, they swapped already. End of over means swap again (so back to original if odd, or swap if even).
+          // Actually simpler: If runs were odd, they are at opposite ends. End of over means Strike changes.
+          // So we just invert the boolean logic? No, end of over physically swaps who faces.
+          // The correct logic is: Rotate strike at end of over implies the non-striker takes strike.
+          rotateStrike = !rotateStrike;
+        } else {
+          // LMS: No strike rotation at end of over if batting alone
+          rotateStrike = false; 
         }
 
+        newState.allOversHistory.push([...newState.currentOverHistory]);
+        if (newState.currentOverHistory.every(e => e.runs === 0 && !e.isExtra) && newState.currentOverHistory.length > 0) {
+          newState.bowlerStats[bowlerId].maidenOvers += 1;
+        }
+        
+        // Prepare for next over
         newState.currentOver += 1;
         newState.currentBall = 0;
         newState.currentOverHistory = [];
+        newState.bowlerId = null; // Force change for next over
       }
       
+      // Perform Rotation if needed
       if (rotateStrike && newState.nonStrikerId) {
         [newState.strikerId, newState.nonStrikerId] = [newState.nonStrikerId, newState.strikerId];
       }
 
+      // Match Status Check
       const inningsOverByOvers = newState.currentOver >= newState.totalOvers;
       const inningsOverByWickets = newState.wickets >= maxWickets;
-      let targetChased = false;
-
-      if (newState.currentInnings === 2 && newState.firstInningsResult) {
-        targetChased = newState.score > newState.firstInningsResult.score;
-      }
+      const targetChased = newState.currentInnings === 2 && newState.firstInningsResult && newState.score > newState.firstInningsResult.score;
 
       if (inningsOverByOvers || inningsOverByWickets || targetChased) {
-        if (newState.currentInnings === 1) {
-          // End of first innings, handled by isFirstInningsOver memo
-        } else {
-          newState.isMatchOver = true;
-          const score1 = newState.firstInningsResult!.score;
-          const score2 = newState.score;
-          if (score2 > score1) {
-            const wicketsRemaining = maxWickets - newState.wickets;
-            newState.matchOverMessage = `${newState[battingTeam].name} won by ${wicketsRemaining} wicket${wicketsRemaining !== 1 ? 's' : ''}!`;
-          } else if (score1 > score2) {
-            const runsMargin = score1 - score2;
-            newState.matchOverMessage = `${newState[newState.bowlingTeam].name} won by ${runsMargin} run${runsMargin !== 1 ? 's' : ''}!`;
-          } else {
-            newState.matchOverMessage = "It's a tie!";
-          }
+        if (newState.currentInnings === 2 || targetChased) {
+            newState.isMatchOver = true;
+            const score1 = newState.firstInningsResult!.score;
+            const score2 = newState.score;
+            if (score2 > score1) {
+                const wicketsRemaining = maxWickets - newState.wickets;
+                newState.matchOverMessage = `${newState[battingTeam].name} WON!`;
+            } else if (score1 > score2) {
+                const runsMargin = score1 - score2;
+                newState.matchOverMessage = `${newState[newState.bowlingTeam].name} WON!`;
+            } else {
+                newState.matchOverMessage = "MATCH TIED!";
+            }
+            
+            // Summary Stats Calculation
+            const allMatchPlayers = [...newState.team1.players, ...newState.team2.players];
+            const getPlayer = (id: string) => allMatchPlayers.find(p => p.id === id);
+
+            let bestBat = { name: '', runs: -1 };
+            let bestBowl = { name: '', wickets: -1, runs: 999 };
+
+            Object.keys(newState.batsmanStats).forEach(pid => {
+                const s = newState.batsmanStats[pid];
+                if (s.runs > bestBat.runs) bestBat = { name: getPlayer(pid)?.name || '', runs: s.runs };
+            });
+
+            Object.keys(newState.bowlerStats).forEach(pid => {
+                const s = newState.bowlerStats[pid];
+                if (s.ballsDelivered > 0) {
+                    if (s.wickets > bestBowl.wickets || (s.wickets === bestBowl.wickets && s.runsConceded < bestBowl.runs)) {
+                        bestBowl = { name: getPlayer(pid)?.name || '', wickets: s.wickets, runs: s.runsConceded };
+                    }
+                }
+            });
+            
+            newState.matchSummary = {
+                topScorer: bestBat.runs > -1 ? bestBat : null,
+                bestBowler: bestBowl.wickets > -1 ? bestBowl : null
+            };
         }
       }
-
       return newState;
     });
   };
   
   const isFirstInningsOver = useMemo(() => {
-    if (!matchState) return false;
-    const { currentInnings, currentOver, totalOvers, wickets, battingTeam } = matchState;
-    if (currentInnings !== 1) return false;
-    
-    const maxWickets = matchState[battingTeam].players.length - 1;
-    return currentOver >= totalOvers || wickets >= maxWickets;
+    if (!matchState || matchState.currentInnings !== 1) return false;
+    const maxWickets = matchState[matchState.battingTeam].players.length; 
+    return matchState.currentOver >= matchState.totalOvers || matchState.wickets >= maxWickets;
   }, [matchState]);
 
-  const renderContent = () => {
-    if (view === 'history') {
-      return <MatchHistory onBack={() => setView('main')} />;
-    }
+  // --- Render Helpers ---
 
-    if (!matchState && setupData) {
-        return (
-            <Toss 
-                team1Name={setupData.team1Name}
-                team2Name={setupData.team2Name}
-                onTossComplete={handleTossResult}
-                onBack={handleBackToSetup}
-            />
-        );
-    }
-    
-    if (!matchState) {
-        return <MatchSetup onMatchStart={handleSetupComplete} onShowHistory={() => setView('history')} />;
-    }
-    
-    return (
-        <>
-          <main className="max-w-4xl mx-auto p-4 pb-56">
-            <Scoreboard 
-              score={matchState.score}
-              wickets={matchState.wickets}
-              currentOver={matchState.currentOver}
-              currentBall={matchState.currentBall}
-              totalOvers={matchState.totalOvers}
-              battingTeamName={matchState[matchState.battingTeam].name}
-              firstInningsResult={matchState.firstInningsResult}
-              currentInnings={matchState.currentInnings}
-              animationKey={scoreAnimationKey}
-            />
+  if (view === 'history') return <MatchHistory onBack={() => setView('main')} />;
+  if (!matchState && setupData) return <Toss team1Name={setupData.team1Name} team2Name={setupData.team2Name} onTossComplete={handleTossResult} onBack={() => setSetupData(null)} />;
+  if (!matchState) return <MatchSetup onMatchStart={handleSetupComplete} onShowHistory={() => setView('history')} />;
 
-            <div className="mt-6 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <PlayerCard
-                  title="Batsmen"
-                  players={matchState[matchState.battingTeam].players.filter(p => !matchState.batsmanStats[p.id].isOut)}
-                  stats={matchState.batsmanStats}
-                  isBattingCard
-                  strikerId={matchState.strikerId}
-                  nonStrikerId={matchState.nonStrikerId}
-                  onStrikerChange={handleStrikerChange}
-                  onNonStrikerChange={handleNonStrikerChange}
-                  isMatchOver={matchState.isMatchOver}
-                />
-                <PlayerCard 
-                  title="Bowler"
-                  players={matchState[matchState.bowlingTeam].players}
-                  stats={matchState.bowlerStats}
-                  activePlayerId={matchState.bowlerId}
-                  onPlayerSelect={handleBowlerChange}
-                  isOverStarting={matchState.currentBall === 0 && matchState.currentOver < matchState.totalOvers}
-                />
-              </div>
-              
-               <div className="bg-[#161B22] rounded-xl p-4 shadow-md">
-                  <h3 className="text-lg font-semibold mb-3 text-[#9CA3AF]">This Over</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {matchState.currentOverHistory.map((event, i) => (
-                      <span key={i} className={`flex items-center justify-center w-9 h-9 rounded-full text-sm font-bold ${
-                        event.isWicket ? 'bg-[#EF4444] text-white' : 
-                        event.runs === 4 || event.runs === 6 ? 'bg-[#3B82F6] text-white' :
-                        event.isExtra ? 'bg-[#F59E0B] text-black' : 'bg-[#0D1117] text-white'
-                      }`}>
-                        {event.display}
-                      </span>
-                    ))}
-                  </div>
-               </div>
-            </div>
-          </main>
-          
-          <footer className="fixed bottom-0 left-0 right-0 bg-[#161B22]/80 backdrop-blur-sm border-t border-gray-700 z-50">
-            <div className="max-w-4xl mx-auto p-4">
-              {isFirstInningsOver && !matchState.isMatchOver && (
-                <div className="flex justify-center items-center">
-                  <button 
-                    onClick={startSecondInnings}
-                    className="px-8 py-4 text-xl font-bold text-white bg-gradient-to-r from-[#F59E0B] to-[#F97316] rounded-xl hover:scale-105 transition-transform"
-                  >
-                    Start 2nd Innings
-                  </button>
-                </div>
-              )}
-              
-              {matchState.isMatchOver && (
-                <div className="text-center space-y-4">
-                  <div className="bg-green-900/50 rounded-lg p-4">
-                    <h2 className="text-2xl font-bold text-green-300">Match Over</h2>
-                    <p className="text-lg mt-1">{matchState.matchOverMessage}</p>
-                  </div>
-                  <button
-                    onClick={handleResetMatch}
-                    className="w-full max-w-sm mx-auto py-3 text-lg font-bold text-white bg-gradient-to-r from-[#3B82F6] to-[#1E40AF] rounded-xl hover:scale-102 transition-transform"
-                  >
-                    Start New Match
-                  </button>
-                </div>
-              )}
+  // Derived state to help UI render correctly
+  const isOverStarting = (matchState.currentBall === 0 && matchState.currentOver < matchState.totalOvers && !matchState.bowlerId) || false;
 
-              {!matchState.isMatchOver && !isFirstInningsOver && (
-                <>
-                  <ScoringControls onScore={handleScore} isMatchOver={matchState.isMatchOver} />
-                  <div className="flex gap-2 mt-4">
-                    <button 
-                        onClick={() => handleScore({ type: 'UNDO' })} 
-                        disabled={!matchState.lastEvent || matchState.isMatchOver}
-                        className="flex-1 flex items-center justify-center gap-2 p-2 bg-[#F59E0B] text-black rounded-lg font-semibold hover:bg-yellow-400 transition disabled:bg-gray-600 disabled:cursor-not-allowed"
-                    >
-                        <UndoIcon className="w-5 h-5" /> Undo
-                    </button>
-                    <button
-                        onClick={handleResetMatch}
-                        className="flex-1 p-2 bg-[#EF4444] text-white rounded-lg font-semibold hover:bg-red-600 transition"
-                    >
-                        Reset Match
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          </footer>
-        </>
-    );
-  };
-  
   return (
-    <div className="bg-[#0D1117] text-white font-sans min-h-screen relative">
-        {renderContent()}
+    <div className="min-h-screen pb-24 md:pb-0">
+      
+      {/* Header */}
+      <header className="sticky top-0 z-40 glass-card border-b border-white/10 px-4 py-3 flex justify-between items-center">
+        <div className="flex items-center gap-2">
+           <TrophyIcon className="w-5 h-5 text-yellow-400" />
+           <h1 className="font-bold text-lg tracking-tight">CRICKET<span className="text-indigo-400">PRO</span></h1>
+        </div>
+        <div className="flex items-center gap-2">
+           {!matchState.isMatchOver && (
+              <button 
+                onClick={() => handleScore({ type: 'UNDO' })} 
+                disabled={!matchState.lastEvent}
+                className="p-2 rounded-full hover:bg-white/10 disabled:opacity-30 transition-colors text-amber-400"
+                aria-label="Undo"
+              >
+                <UndoIcon className="w-5 h-5" />
+              </button>
+           )}
+           <button onClick={handleResetMatch} className="text-xs bg-white/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 px-3 py-1.5 rounded-full transition-all border border-white/5">
+             END MATCH
+           </button>
+        </div>
+      </header>
+
+      <main className="max-w-2xl mx-auto p-4 space-y-6">
+        {/* Scoreboard */}
+        <Scoreboard 
+          {...matchState}
+          battingTeamName={matchState[matchState.battingTeam].name}
+          animationKey={scoreAnimationKey}
+        />
+
+        {matchState.isMatchOver && (
+          <MatchOverModal matchState={matchState} onNewMatch={handleResetMatch} />
+        )}
+
+        {/* Action Cards */}
+        <div className="grid grid-cols-1 gap-4">
+          {/* Batsmen Card */}
+          <PlayerCard
+            title="Batting"
+            players={matchState[matchState.battingTeam].players.filter(p => !matchState.batsmanStats[p.id].isOut)}
+            stats={matchState.batsmanStats}
+            isBattingCard
+            strikerId={matchState.strikerId}
+            nonStrikerId={matchState.nonStrikerId}
+            onStrikerChange={(id) => handlePlayerChange('striker', id)}
+            onNonStrikerChange={(id) => handlePlayerChange('nonStriker', id)}
+            isMatchOver={matchState.isMatchOver}
+          />
+
+          {/* Bowler Card */}
+          <PlayerCard 
+            title="Bowling" 
+            players={matchState[matchState.bowlingTeam].players} 
+            stats={matchState.bowlerStats}
+            activePlayerId={matchState.bowlerId} 
+            onPlayerSelect={(id) => handlePlayerChange('bowler', id)}
+            isOverStarting={isOverStarting || isFirstInningsOver}
+            isMatchOver={matchState.isMatchOver}
+          />
+        </div>
+
+        {/* Current Over Strip */}
+        <div className="glass-panel rounded-xl p-4 flex items-center gap-4 overflow-x-auto no-scrollbar">
+            <span className="text-xs font-bold text-gray-400 uppercase whitespace-nowrap">This Over</span>
+            <div className="flex gap-2">
+              {matchState.currentOverHistory.length === 0 && <span className="text-gray-600 text-sm">-</span>}
+              {matchState.currentOverHistory.map((event, i) => (
+                <div key={i} className={`
+                  w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border border-white/5 shadow-sm
+                  ${event.isWicket ? 'bg-red-500 text-white' : 
+                    event.runs === 4 ? 'bg-indigo-500 text-white' : 
+                    event.runs === 6 ? 'bg-emerald-500 text-white' : 
+                    event.isExtra ? 'bg-amber-500 text-black' : 'bg-slate-800 text-white'}
+                `}>
+                  {event.display}
+                </div>
+              ))}
+            </div>
+        </div>
+      </main>
+
+      {/* Controls Footer */}
+      {!matchState.isMatchOver && (
+        <div className="fixed bottom-0 left-0 right-0 bg-[#020617]/90 backdrop-blur-xl border-t border-white/10 z-50 pb-safe">
+           <div className="max-w-2xl mx-auto p-4">
+              {isFirstInningsOver ? (
+                  <button onClick={startSecondInnings} className="w-full py-4 text-lg font-bold text-white bg-gradient-to-r from-indigo-600 to-blue-600 rounded-xl shadow-lg shadow-indigo-900/20 animate-pulse-glow">
+                    START 2ND INNINGS
+                  </button>
+              ) : (
+                  <ScoringControls onScore={handleScore} isMatchOver={matchState.isMatchOver} />
+              )}
+           </div>
+        </div>
+      )}
     </div>
   );
 };
