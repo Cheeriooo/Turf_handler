@@ -12,6 +12,15 @@ dist
 dist-ssr
 *.local
 
+# Environment variables
+.env
+.env.local
+.env.production
+
+# Database files
+*.sql
+!supabase_schema.sql
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
