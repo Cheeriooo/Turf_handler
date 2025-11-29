@@ -1,55 +1,37 @@
-# Cricket Scorer PWA
+# Fight Resolver 🏏
 
-A modern, mobile-first Progressive Web App (PWA) for tracking cricket matches. Designed for turf cricket and casual matches, it allows you to score games, track stats, and save match history to the cloud.
+**"Because every run counts, and we were tired of arguing about it."**
+
+Welcome to **Fight Resolver** (aka the Cricket Scorer PWA). I built this app for one simple reason: our turf cricket matches were turning into debate clubs. "Was that a wide?", "What's the score?", "Who bowled the last over?". We fought over every single run.
+
+So, I built this. No more cheating, no more memory lapses, and definitely **no more fighting**. Just pure cricket.
+
+## Why this exists?
+
+-   **The "Wide" Argument**: We needed an impartial judge. Now the app tracks extras.
+-   **The "Score" Amnesia**: "Wait, are we on 42 or 44?" -> The app never forgets.
+-   **The "Undo" Button**: Because even the scorer makes mistakes (and we need to fix them fast before a fight breaks out).
 
 ## Features
 
--   **Match Scoring**: Track runs, wickets, extras (wides, no-balls), and overs.
--   **Undo Functionality**: Correct mistakes easily with the undo button.
--   **Haptic Feedback**: Tactile vibrations for scoring actions (runs, boundaries, wickets).
--   **Cloud Sync**: Sign in with Google to save your match history to the cloud (Supabase).
--   **Offline Capable**: Works offline as a PWA. Install it on your home screen for a native app-like experience.
--   **Match History**: View past match summaries and stats.
--   **Responsive Design**: Optimized for mobile devices with a sleek, dark-themed UI.
+-   **Haptic Feedback**: Feel the runs! The phone vibrates on key actions so you know the button was pressed without looking.
+-   **Cloud Sync**: Matches are saved to the cloud (Supabase) so we can pull up the history and prove who actually won last week.
+-   **Offline Ready**: Works perfectly on the turf even with spotty signal.
+-   **Dark Mode**: Looks cool, saves battery during those late-night matches.
 
 ## Tech Stack
 
--   **Frontend**: React, TypeScript, Vite
--   **Styling**: Tailwind CSS
--   **Backend/Auth**: Supabase
--   **PWA**: vite-plugin-pwa
+Built with love (and a bit of frustration) using:
+-   **React & TypeScript** (Solid foundation)
+-   **Vite** (Fast like our fast bowlers)
+-   **Tailwind CSS** (Sleek design)
+-   **Supabase** (The impartial cloud judge)
 
 ## Getting Started
 
-1.  **Install Dependencies**:
-    ```bash
-    npm install
-    ```
+1.  **Install**: `npm install`
+2.  **Run**: `npm run dev`
+3.  **Play**: Go to the turf and start scoring!
 
-2.  **Run Locally**:
-    ```bash
-    npm run dev
-    ```
-
-3.  **Build for Production**:
-    ```bash
-    npm run build
-    ```
-
-## Deployment
-
-The app is configured for deployment on Vercel.
-
-1.  Push your code to a GitHub repository.
-2.  Import the project into Vercel.
-3.  Set up the environment variables (Supabase URL and Anon Key) in the Vercel dashboard.
-4.  Deploy!
-
-## Environment Variables
-
-Create a `.env` file in the root directory with the following keys:
-
-```env
-VITE_SUPABASE_URL=your_supabase_url
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-```
+---
+*Built for the love of the game (and peace of mind).*
