@@ -3,5 +3,11 @@
     "outputDirectory": "dist",
     "devCommand": "npm run dev",
     "installCommand": "npm ci --include=optional",
-    "framework": "vite"
+    "framework": "vite",
+    "rewrites": [
+        {
+            "source": "/(.*)",
+            "destination": "/index.html"
+        }
+    ]
 }
