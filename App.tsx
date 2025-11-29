@@ -124,7 +124,7 @@ const Game: React.FC = () => {
       bowlingTeam: bowlingTeamKey,
       strikerId: battingTeamPlayers[0]?.id || null,
       nonStrikerId: battingTeamPlayers[1]?.id || null,
-      bowlerId: bowlingTeamPlayers[0]?.id || null,
+      bowlerId: null,
       batsmanStats: initialBatsmanStats,
       bowlerStats: initialBowlerStats,
       score: 0,
