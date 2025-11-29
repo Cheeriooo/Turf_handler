@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { MatchState, Player } from '../types';
 import { HistoryIcon, DownloadIcon, ChevronDownIcon } from './icons';
-import InningsScorecard from './InningsScorecard';
 import { useAuth } from '../contexts/AuthContext';
 import { fetchMatchesFromSupabase } from '../services/matchService';
 
@@ -169,24 +168,46 @@ const MatchHistory: React.FC<{ onBack: () => void; }> = ({ onBack }) => {
                                         >
                                             <div className="mt-6 pt-6 border-t border-white/10 space-y-8">
                                                 {/* Innings 1 Report */}
-                                                <InningsScorecard
-                                                    title={`${innings1Team.name} Innings`}
-                                                    players={innings1Team.players}
-                                                    batsmanStats={match.batsmanStats}
-                                                    bowlerStats={match.bowlerStats}
-                                                    teamScore={match.firstInningsResult?.score || 0}
-                                                    teamWickets={match.firstInningsResult?.wickets || 0}
-                                                />
+                                                <div className="space-y-2">
+                                                    <h4 className="font-bold text-indigo-400">{innings1Team.name} Innings</h4>
+                                                    <div className="text-sm text-gray-300">
+                                                        Score: {match.firstInningsResult?.score || 0}/{match.firstInningsResult?.wickets || 0}
+                                                    </div>
+                                                    {/* Simple Player List */}
+                                                    <div className="grid grid-cols-1 gap-1">
+                                                        {innings1Team.players.map(p => {
+                                                            const stats = match.batsmanStats[p.id];
+                                                            if (!stats || (stats.balls === 0 && !stats.isOut)) return null;
+                                                            return (
+                                                                <div key={p.id} className="flex justify-between text-xs border-b border-white/5 py-1">
+                                                                    <span>{p.name}</span>
+                                                                    <span className="font-mono">{stats.runs}({stats.balls})</span>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
 
                                                 {/* Innings 2 Report */}
-                                                <InningsScorecard
-                                                    title={`${innings2Team.name} Innings`}
-                                                    players={innings2Team.players}
-                                                    batsmanStats={match.batsmanStats}
-                                                    bowlerStats={match.bowlerStats}
-                                                    teamScore={match.score}
-                                                    teamWickets={match.wickets}
-                                                />
+                                                <div className="space-y-2">
+                                                    <h4 className="font-bold text-indigo-400">{innings2Team.name} Innings</h4>
+                                                    <div className="text-sm text-gray-300">
+                                                        Score: {match.score}/{match.wickets}
+                                                    </div>
+                                                    {/* Simple Player List */}
+                                                    <div className="grid grid-cols-1 gap-1">
+                                                        {innings2Team.players.map(p => {
+                                                            const stats = match.batsmanStats[p.id];
+                                                            if (!stats || (stats.balls === 0 && !stats.isOut)) return null;
+                                                            return (
+                                                                <div key={p.id} className="flex justify-between text-xs border-b border-white/5 py-1">
+                                                                    <span>{p.name}</span>
+                                                                    <span className="font-mono">{stats.runs}({stats.balls})</span>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
                                             </div>
                                         </motion.div>
                                     )}
