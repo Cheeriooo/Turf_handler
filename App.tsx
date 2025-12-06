@@ -65,7 +65,7 @@ const Game: React.FC = () => {
 
   // Sync live match state to Supabase when sharing
   useEffect(() => {
-    if (liveShareCode && matchState && !matchState.isMatchOver) {
+    if (liveShareCode && matchState) {
       updateLiveMatch(liveShareCode, matchState);
     }
   }, [matchState, liveShareCode]);
