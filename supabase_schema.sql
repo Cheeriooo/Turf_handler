@@ -108,3 +108,53 @@ create policy "Users can insert overs of own matches." on overs for insert with 
 
 create policy "Users can view balls of own matches." on balls for select using ( exists ( select 1 from overs join innings on innings.id = overs.innings_id join matches on matches.id = innings.match_id where overs.id = balls.over_id and matches.user_id = auth.uid() ) );
 create policy "Users can insert balls of own matches." on balls for insert with check ( exists ( select 1 from overs join innings on innings.id = overs.innings_id join matches on matches.id = innings.match_id where overs.id = over_id and matches.user_id = auth.uid() ) );
+
+-- =============================================
+-- SAVED TEAMS (for quick match setup)
+-- =============================================
+create table saved_teams (
+  id uuid default uuid_generate_v4() primary key,
+  user_id uuid references profiles(id) not null,
+  team_name text not null,
+  player_names text[] not null,
+  created_at timestamp with time zone default now()
+);
+
+alter table saved_teams enable row level security;
+
+create policy "Users can view their own teams." on saved_teams 
+  for select using (auth.uid() = user_id);
+create policy "Users can insert their own teams." on saved_teams 
+  for insert with check (auth.uid() = user_id);
+create policy "Users can update their own teams." on saved_teams 
+  for update using (auth.uid() = user_id);
+create policy "Users can delete their own teams." on saved_teams 
+  for delete using (auth.uid() = user_id);
+
+-- =============================================
+-- LIVE MATCHES (for real-time sharing)
+-- =============================================
+create table live_matches (
+  id uuid default uuid_generate_v4() primary key,
+  share_code text unique not null,
+  user_id uuid references profiles(id) not null,
+  match_state jsonb not null,
+  created_at timestamp with time zone default now(),
+  updated_at timestamp with time zone default now()
+);
+
+alter table live_matches enable row level security;
+
+-- Anyone can view live matches by share code (for spectators)
+create policy "Anyone can view live matches." on live_matches 
+  for select using (true);
+-- Only owner can insert/update/delete
+create policy "Users can insert their own live matches." on live_matches 
+  for insert with check (auth.uid() = user_id);
+create policy "Users can update their own live matches." on live_matches 
+  for update using (auth.uid() = user_id);
+create policy "Users can delete their own live matches." on live_matches 
+  for delete using (auth.uid() = user_id);
+
+-- Enable realtime for live_matches
+alter publication supabase_realtime add table live_matches;

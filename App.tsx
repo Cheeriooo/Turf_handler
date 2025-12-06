@@ -10,8 +10,10 @@ import Scoreboard from './components/Scoreboard';
 import PlayerCard from './components/PlayerCard';
 import ScoringControls from './components/ScoringControls';
 import MatchOverModal from './components/MatchOverModal';
-import { UndoIcon, TrophyIcon } from './components/icons';
+import LiveScoreView from './components/LiveScoreView';
+import { UndoIcon, TrophyIcon, ShareIcon } from './components/icons';
 import { saveMatchToSupabase } from './services/matchService';
+import { startLiveMatch, updateLiveMatch, endLiveMatch } from './services/liveMatchService';
 import ErrorBoundary from './components/ErrorBoundary';
 import Toast from './components/Toast';
 
@@ -28,6 +30,10 @@ const Game: React.FC = () => {
   const [matchState, setMatchState] = useState<MatchState | null>(null);
   const [setupData, setSetupData] = useState<MatchSetupData | null>(null);
   const [scoreAnimationKey, setScoreAnimationKey] = useState(0);
+
+  // Live sharing state
+  const [liveShareCode, setLiveShareCode] = useState<string | null>(null);
+  const [isSharing, setIsSharing] = useState(false);
 
   // --- Persistence Logic ---
   useEffect(() => {
@@ -56,6 +62,13 @@ const Game: React.FC = () => {
       localStorage.removeItem('cricketResolverState');
     }
   }, [matchState]);
+
+  // Sync live match state to Supabase when sharing
+  useEffect(() => {
+    if (liveShareCode && matchState && !matchState.isMatchOver) {
+      updateLiveMatch(liveShareCode, matchState);
+    }
+  }, [matchState, liveShareCode]);
 
   useEffect(() => {
     if (matchState?.isMatchOver) {
@@ -145,6 +158,11 @@ const Game: React.FC = () => {
 
   const handleResetMatch = () => {
     if (window.confirm("Start a new match? Current progress will be discarded.")) {
+      // End live match if sharing
+      if (liveShareCode) {
+        endLiveMatch(liveShareCode);
+        setLiveShareCode(null);
+      }
       localStorage.removeItem('cricketResolverState');
       setMatchState(null);
       setSetupData(null);
@@ -392,6 +410,35 @@ const Game: React.FC = () => {
     return matchState.currentOver >= matchState.totalOvers || matchState.wickets >= maxWickets;
   }, [matchState]);
 
+  // --- Share Match Handler ---
+  const handleShareMatch = async () => {
+    if (!user || !matchState) {
+      showToast('Login required to share match', 'error');
+      return;
+    }
+
+    if (liveShareCode) {
+      // Already sharing, copy link again
+      const shareUrl = `${window.location.origin}${window.location.pathname}#/live/${liveShareCode}`;
+      navigator.clipboard.writeText(shareUrl);
+      showToast('Link copied to clipboard!', 'success');
+      return;
+    }
+
+    setIsSharing(true);
+    const result = await startLiveMatch(user.id, matchState);
+    setIsSharing(false);
+
+    if (result.success && result.shareCode) {
+      setLiveShareCode(result.shareCode);
+      const shareUrl = `${window.location.origin}${window.location.pathname}#/live/${result.shareCode}`;
+      navigator.clipboard.writeText(shareUrl);
+      showToast('Match is now live! Link copied.', 'success');
+    } else {
+      showToast('Failed to start live sharing', 'error');
+    }
+  };
+
   // --- Render Helpers ---
 
   if (view === 'history') return <MatchHistory onBack={() => setView('main')} />;
@@ -411,6 +458,17 @@ const Game: React.FC = () => {
           <h1 className="font-bold text-lg tracking-tight">FIGHT<span className="text-indigo-400">RESOLVER</span></h1>
         </div>
         <div className="flex items-center gap-2">
+          {!matchState.isMatchOver && user && (
+            <button
+              onClick={handleShareMatch}
+              disabled={isSharing}
+              className={`p-2 rounded-full transition-colors ${liveShareCode ? 'text-green-400 bg-green-600/20' : 'hover:bg-white/10 text-gray-400'}`}
+              aria-label="Share Match"
+              title={liveShareCode ? 'Copy share link' : 'Share live match'}
+            >
+              <ShareIcon className="w-5 h-5" />
+            </button>
+          )}
           {!matchState.isMatchOver && (
             <button
               onClick={() => handleScore({ type: 'UNDO' })}
@@ -507,6 +565,37 @@ const Game: React.FC = () => {
 const AppContent: React.FC = () => {
   const { user, loading } = useAuth();
   const [guestMode, setGuestMode] = useState(false);
+  const [liveViewCode, setLiveViewCode] = useState<string | null>(null);
+
+  // Check URL for live match share code on mount
+  useEffect(() => {
+    const checkHash = () => {
+      const hash = window.location.hash;
+      const liveMatch = hash.match(/#\/live\/([A-Z0-9]+)/i);
+      if (liveMatch) {
+        setLiveViewCode(liveMatch[1].toUpperCase());
+      } else {
+        setLiveViewCode(null);
+      }
+    };
+
+    checkHash();
+    window.addEventListener('hashchange', checkHash);
+    return () => window.removeEventListener('hashchange', checkHash);
+  }, []);
+
+  // If viewing a live match, show LiveScoreView
+  if (liveViewCode) {
+    return (
+      <LiveScoreView
+        shareCode={liveViewCode}
+        onClose={() => {
+          window.location.hash = '';
+          setLiveViewCode(null);
+        }}
+      />
+    );
+  }
 
   if (loading) return <div className="min-h-screen bg-[#020617] flex items-center justify-center text-white">Loading...</div>;
 
